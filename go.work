@@ -1,0 +1,33 @@
+go 1.25.0
+
+use (
+	.
+	./examples/extensions/autocert
+	./examples/extensions/http3
+	./examples/extensions/http3_autocert
+	./examples/extensions/webtransport
+	./examples/extensions/webtransport_autocert
+	./examples/extensions/websocket
+	./examples/adapters/huma
+	./examples/adapters/zerolog
+	./examples/middleware/cache
+	./examples/middleware/compress
+	./examples/middleware/idempotency
+	./examples/middleware/jwtauth
+	./examples/middleware/ratelimit
+	./examples/middleware/tracer
+	./extensions/autocert
+	./extensions/http3
+	./extensions/websocket
+	./extensions/webtransport
+	./adapters/huma
+	./adapters/zerolog
+	./middleware/cache
+	./middleware/compress
+	./middleware/idempotency
+	./middleware/jwtauth
+	./middleware/ratelimit
+	./middleware/tracer
+)
+
+replace github.com/alexferl/zerohttp => ../zerohttp
