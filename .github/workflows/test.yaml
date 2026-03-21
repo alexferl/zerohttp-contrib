@@ -61,7 +61,7 @@ jobs:
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-${{ steps.sanitize.outputs.name }}
+          name: coverage-${{ matrix.os }}-${{ matrix.go-version }}-${{ steps.sanitize.outputs.name }}
           path: ${{ matrix.module }}/coverage.txt
 
   # Merge coverage and upload to Coveralls
@@ -77,7 +77,7 @@ jobs:
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: coverage-ubuntu-latest-*
+          pattern: coverage-ubuntu-latest-1.26.x-*
           merge-multiple: true
 
       - name: List downloaded artifacts
