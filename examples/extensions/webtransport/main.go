@@ -69,7 +69,11 @@ func main() {
 }
 
 func handleSession(sess *webtransport.Session) {
-	defer sess.CloseWithError(0, "done")
+	defer func() {
+		if err := sess.CloseWithError(0, "done"); err != nil {
+			log.Printf("Error closing session: %v", err)
+		}
+	}()
 
 	log.Printf("WebTransport session from %s", sess.RemoteAddr())
 
@@ -79,7 +83,10 @@ func handleSession(sess *webtransport.Session) {
 			if err != nil {
 				return
 			}
-			sess.SendDatagram(append([]byte("Echo: "), msg...))
+			if err := sess.SendDatagram(append([]byte("Echo: "), msg...)); err != nil {
+				log.Printf("Error sending datagram: %v", err)
+				return
+			}
 		}
 	}()
 
@@ -89,14 +96,21 @@ func handleSession(sess *webtransport.Session) {
 			return
 		}
 		go func(str *webtransport.Stream) {
-			defer str.Close()
+			defer func() {
+				if err := str.Close(); err != nil {
+					log.Printf("Error closing stream: %v", err)
+				}
+			}()
 			buf := make([]byte, 1024)
 			for {
 				n, err := str.Read(buf)
 				if n > 0 {
 					msg := string(buf[:n])
 					response := fmt.Sprintf("[%s] Echo: %s", time.Now().Format("15:04:05"), msg)
-					str.Write([]byte(response))
+					if _, err := str.Write([]byte(response)); err != nil {
+						log.Printf("Error writing to stream: %v", err)
+						return
+					}
 				}
 				if err != nil {
 					return
