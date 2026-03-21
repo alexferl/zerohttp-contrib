@@ -51,10 +51,17 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: go run gotest.tools/gotestsum@latest -f testname -- ./... -race -count=1 -coverprofile=coverage.txt -covermode=atomic -shuffle=on
 
+      - name: Sanitize module name for artifact
+        id: sanitize
+        run: |
+          MODULE_NAME="${{ matrix.module }}"
+          SANITIZED="${MODULE_NAME//\//-}"
+          echo "name=$SANITIZED" >> $GITHUB_OUTPUT
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-${{ matrix.module == '.' && 'root' || replace(matrix.module, '/', '-') }}
+          name: coverage-${{ matrix.os }}-${{ steps.sanitize.outputs.name }}
           path: ${{ matrix.module }}/coverage.txt
 
   # Merge coverage and upload to Coveralls
