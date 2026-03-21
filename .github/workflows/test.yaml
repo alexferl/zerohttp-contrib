@@ -44,6 +44,9 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Remove workspace replace directive
+        run: go work edit -dropreplace github.com/alexferl/zerohttp || true
+
       - name: Run Tests
         working-directory: ${{ matrix.module }}
         run: go run gotest.tools/gotestsum@latest -f testname -- ./... -race -count=1 -coverprofile=coverage.txt -covermode=atomic -shuffle=on
