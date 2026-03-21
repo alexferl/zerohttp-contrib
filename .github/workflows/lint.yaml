@@ -50,8 +50,8 @@ jobs:
         with:
           go-version: '1.26.x'
 
-      - name: Remove workspace replace directive
-        run: go work edit -dropreplace github.com/alexferl/zerohttp || true
+      - name: Remove go.work to avoid replace conflicts
+        run: rm go.work go.work.sum 2>/dev/null || true
 
       - name: Setup golangci-lint
         uses: golangci/golangci-lint-action@v9
