@@ -54,7 +54,7 @@ jobs:
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-${{ matrix.module }}
+          name: coverage-${{ matrix.os }}-${{ matrix.module == '.' && 'root' || replace(matrix.module, '/', '-') }}
           path: ${{ matrix.module }}/coverage.txt
 
   # Merge coverage and upload to Coveralls
@@ -72,6 +72,9 @@ jobs:
         with:
           pattern: coverage-ubuntu-latest-*
           merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -la
 
       - name: Merge coverage files
         run: |
