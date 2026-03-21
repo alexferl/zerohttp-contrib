@@ -9,26 +9,14 @@ import (
 
 // ZstdEncoder implements config.CompressionEncoder for Zstd compression.
 // Zstd provides excellent compression ratios with very fast decompression.
-type ZstdEncoder struct{}
+type ZstdEncoder struct {
+	level zstd.EncoderLevel
+}
 
 // Encode wraps the provided io.Writer with Zstd compression.
-// The level parameter is mapped from gzip's 1-9 range to Zstd's speed levels.
-func (e ZstdEncoder) Encode(w io.Writer, level int) io.Writer {
-	// zstd levels are 1-22 (SpeedFastest to SpeedBest)
-	// Map standard 1-9 to zstd range
-	var zstdLevel zstd.EncoderLevel
-	switch {
-	case level <= 1:
-		zstdLevel = zstd.SpeedFastest
-	case level <= 3:
-		zstdLevel = zstd.SpeedDefault
-	case level <= 6:
-		zstdLevel = zstd.SpeedBetterCompression
-	default:
-		zstdLevel = zstd.SpeedBestCompression
-	}
-
-	encoder, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zstdLevel))
+// Uses the encoder's configured level.
+func (e ZstdEncoder) Encode(w io.Writer, _ int) io.Writer {
+	encoder, err := zstd.NewWriter(w, zstd.WithEncoderLevel(e.level))
 	if err != nil {
 		// Fall back to default on error
 		encoder, _ = zstd.NewWriter(w)
@@ -45,16 +33,34 @@ func (e ZstdEncoder) Encoding() string {
 // Use this with middleware.Compress to enable Zstd compression:
 //
 //	app.Use(middleware.Compress(config.CompressConfig{
-//	    Level:      6,
 //	    Algorithms: []config.CompressionAlgorithm{"zstd", config.Gzip},
 //	    Providers:  []config.CompressionProvider{compress.ZstdProvider{}},
 //	}))
-type ZstdProvider struct{}
+//
+// To specify a custom compression level:
+//
+//	app.Use(middleware.Compress(config.CompressConfig{
+//	    Algorithms: []config.CompressionAlgorithm{"zstd"},
+//	    Providers: []config.CompressionProvider{
+//	        compress.ZstdProvider{Level: zstd.SpeedBestCompression},
+//	    },
+//	}))
+type ZstdProvider struct {
+	// Level is the zstd compression level to use.
+	// If zero, uses zstd.SpeedDefault.
+	// Valid values: zstd.SpeedFastest, zstd.SpeedDefault, zstd.SpeedBetterCompression, zstd.SpeedBestCompression
+	// or any value from 1 (SpeedFastest) to 22 (SpeedBestCompression).
+	Level zstd.EncoderLevel
+}
 
 // GetEncoder returns a ZstdEncoder for "zstd" encoding.
 func (p ZstdProvider) GetEncoder(encoding string) config.CompressionEncoder {
 	if encoding == "zstd" {
-		return ZstdEncoder{}
+		level := p.Level
+		if level == 0 {
+			level = zstd.SpeedDefault
+		}
+		return ZstdEncoder{level: level}
 	}
 	return nil
 }
