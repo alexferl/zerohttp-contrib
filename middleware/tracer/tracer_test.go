@@ -6,11 +6,31 @@ import (
 	"testing"
 
 	"github.com/alexferl/zerohttp/trace"
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
+
+func TestNewDefault(t *testing.T) {
+	t.Run("creates tracer with valid endpoint", func(t *testing.T) {
+		// Use a local endpoint that won't actually be called during this test
+		ctx := context.Background()
+		tracer, shutdown, err := NewDefault(ctx, "test-service", "localhost:4318")
+
+		// The exporter is created synchronously but connection happens later
+		// So this should succeed even if the endpoint isn't reachable
+		assert.NoError(t, err)
+		assert.NotNil(t, tracer)
+		assert.NotNil(t, shutdown)
+
+		// Clean up
+		if shutdown != nil {
+			shutdown()
+		}
+	})
+}
 
 func TestNewOTelTracer(t *testing.T) {
 	exporter := tracetest.NewInMemoryExporter()

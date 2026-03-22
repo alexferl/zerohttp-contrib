@@ -8,11 +8,32 @@ on:
   pull_request:
 
 jobs:
+  # Find all module directories to run tests in parallel
+  find-modules:
+    name: find-modules
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.find.outputs.modules }}
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v6
+
+      - name: Find Go modules
+        id: find
+        run: |
+          # Find all directories containing go.mod, excluding root and examples
+          MODULES=$(find . -mindepth 2 -name "go.mod" -not -path "./examples/*" -print0 | xargs -0 -n1 dirname | sed 's|^\./||' | jq -R -s -c 'split("\n")[:-1]')
+          echo "modules=$MODULES" >> $GITHUB_OUTPUT
+          echo "Found modules: $MODULES"
+
   unit:
+    needs: find-modules
     strategy:
+      fail-fast: false
       matrix:
-        go-version: [ '1.26.x' ]
+        go-version: [ '1.25.x', '1.26.x' ]
         os: [ macos-latest, ubuntu-latest ]
+        module: ${{ fromJson(needs.find-modules.outputs.modules) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Fetch Repository
@@ -23,14 +44,56 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Remove go.work to avoid replace conflicts
+        run: rm go.work go.work.sum 2>/dev/null || true
+
       - name: Run Tests
+        working-directory: ${{ matrix.module }}
         run: go run gotest.tools/gotestsum@latest -f testname -- ./... -race -count=1 -coverprofile=coverage.txt -covermode=atomic -shuffle=on
 
-      - name: Remove examples from coverage
-        run: grep -v '/examples/' coverage.txt > coverage.filtered.txt && mv coverage.filtered.txt coverage.txt
+      - name: Sanitize module name for artifact
+        id: sanitize
+        run: |
+          MODULE_NAME="${{ matrix.module }}"
+          SANITIZED="${MODULE_NAME//\//-}"
+          echo "name=$SANITIZED" >> $GITHUB_OUTPUT
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.go-version }}-${{ steps.sanitize.outputs.name }}
+          path: ${{ matrix.module }}/coverage.txt
+
+  # Merge coverage and upload to Coveralls
+  coverage:
+    name: coverage
+    needs: unit
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v6
+
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-ubuntu-latest-1.26.x-*
+          path: artifacts
+
+      - name: List downloaded artifacts
+        run: find artifacts -type f | head -20
+
+      - name: Merge coverage files
+        run: |
+          # Find and merge all coverage files from artifacts
+          echo "mode: atomic" > coverage.txt
+          find artifacts -name "coverage.txt" -type f | while read -r f; do
+            echo "Merging: $f"
+            tail -n +2 "$f" >> coverage.txt
+          done
+          wc -l coverage.txt
 
       - name: Upload to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26.x' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

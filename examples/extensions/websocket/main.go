@@ -43,7 +43,11 @@ func main() {
 		if err != nil {
 			return err
 		}
-		defer ws.Close()
+		defer func() {
+			if err := ws.Close(); err != nil {
+				log.Printf("WebSocket close error: %v", err)
+			}
+		}()
 
 		clientAddr := ws.RemoteAddr().String()
 		log.Printf("WebSocket client connected: %s", clientAddr)

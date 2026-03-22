@@ -10,11 +10,10 @@ import (
 )
 
 func TestZstdEncoder_Encode(t *testing.T) {
-	encoder := ZstdEncoder{}
-
-	t.Run("encode with level 1 (fastest)", func(t *testing.T) {
+	t.Run("encode with default level", func(t *testing.T) {
+		encoder := ZstdEncoder{}
 		var buf bytes.Buffer
-		w := encoder.Encode(&buf, 1)
+		w := encoder.Encode(&buf, 0)
 		require.NotNil(t, w)
 
 		data := []byte("Hello, Zstd!")
@@ -29,29 +28,14 @@ func TestZstdEncoder_Encode(t *testing.T) {
 		assert.Greater(t, buf.Len(), 0)
 	})
 
-	t.Run("encode with level 6 (default)", func(t *testing.T) {
+	t.Run("encode with custom level", func(t *testing.T) {
+		encoder := ZstdEncoder{level: 1}
 		var buf bytes.Buffer
-		w := encoder.Encode(&buf, 6)
+		// Second parameter is ignored, encoder uses its own level
+		w := encoder.Encode(&buf, 99)
 		require.NotNil(t, w)
 
-		data := []byte("Hello, Zstd compression with default level!")
-		_, err := w.Write(data)
-		require.NoError(t, err)
-
-		if closer, ok := w.(io.Closer); ok {
-			err := closer.Close()
-			require.NoError(t, err)
-		}
-
-		assert.Greater(t, buf.Len(), 0)
-	})
-
-	t.Run("encode with level 9 (best)", func(t *testing.T) {
-		var buf bytes.Buffer
-		w := encoder.Encode(&buf, 9)
-		require.NotNil(t, w)
-
-		data := []byte("Hello, Zstd compression with best compression!")
+		data := []byte("Hello, Zstd compression!")
 		_, err := w.Write(data)
 		require.NoError(t, err)
 
@@ -70,15 +54,52 @@ func TestZstdEncoder_Encoding(t *testing.T) {
 }
 
 func TestZstdProvider_GetEncoder(t *testing.T) {
-	provider := ZstdProvider{}
-
-	t.Run("returns encoder for zstd", func(t *testing.T) {
+	t.Run("returns encoder with default level", func(t *testing.T) {
+		provider := ZstdProvider{}
 		encoder := provider.GetEncoder("zstd")
 		assert.NotNil(t, encoder)
 		assert.Equal(t, "zstd", encoder.Encoding())
+
+		// Test encoding works with default level
+		var buf bytes.Buffer
+		w := encoder.Encode(&buf, 0)
+		require.NotNil(t, w)
+
+		data := []byte("Test data")
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		if closer, ok := w.(io.Closer); ok {
+			err := closer.Close()
+			require.NoError(t, err)
+		}
+
+		assert.Greater(t, buf.Len(), 0)
+	})
+
+	t.Run("returns encoder with custom level", func(t *testing.T) {
+		provider := ZstdProvider{Level: 3}
+		encoder := provider.GetEncoder("zstd")
+		assert.NotNil(t, encoder)
+
+		var buf bytes.Buffer
+		w := encoder.Encode(&buf, 0)
+		require.NotNil(t, w)
+
+		data := []byte("Test data with custom level")
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		if closer, ok := w.(io.Closer); ok {
+			err := closer.Close()
+			require.NoError(t, err)
+		}
+
+		assert.Greater(t, buf.Len(), 0)
 	})
 
 	t.Run("returns nil for other encodings", func(t *testing.T) {
+		provider := ZstdProvider{}
 		encoder := provider.GetEncoder("gzip")
 		assert.Nil(t, encoder)
 
@@ -97,9 +118,9 @@ func TestCompressionComparison(t *testing.T) {
 		"Pack my box with five dozen liquor jugs.")
 
 	t.Run("brotli compression", func(t *testing.T) {
-		encoder := BrotliEncoder{}
+		encoder := BrotliEncoder{level: 4}
 		var buf bytes.Buffer
-		w := encoder.Encode(&buf, 6)
+		w := encoder.Encode(&buf, 0)
 		require.NotNil(t, w)
 
 		_, err := w.Write(data)
@@ -116,9 +137,9 @@ func TestCompressionComparison(t *testing.T) {
 	})
 
 	t.Run("zstd compression", func(t *testing.T) {
-		encoder := ZstdEncoder{}
+		encoder := ZstdEncoder{level: 3}
 		var buf bytes.Buffer
-		w := encoder.Encode(&buf, 6)
+		w := encoder.Encode(&buf, 0)
 		require.NotNil(t, w)
 
 		_, err := w.Write(data)

@@ -31,11 +31,21 @@ TESTFLAGS := -shuffle=on
 COVERFLAGS := -covermode=atomic
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
 
-# All module directories (subdirs that contain go.mod), excluding the repo root and examples
+# All module directories (subdirs that contain go.mod), excluding the repo root
+ALL_MODULE_DIRS := $(shell find . -mindepth 2 -name go.mod -print0 | xargs -0 -n1 dirname)
+
+# Module directories excluding examples (for test/cover/bench)
 MODULE_DIRS := $(shell find . -mindepth 2 -name go.mod -not -path './examples/*' -print0 | xargs -0 -n1 dirname)
 
 define run_in_modules
 	for m in $(MODULE_DIRS); do \
+		echo "==> $$m"; \
+		( cd $$m && $(1) ) || exit $$?; \
+	done
+endef
+
+define run_in_all_modules
+	for m in $(ALL_MODULE_DIRS); do \
 		echo "==> $$m"; \
 		( cd $$m && $(1) ) || exit $$?; \
 	done
@@ -51,7 +61,7 @@ dev: check-pre-commit
 
 audit:
 	go mod verify
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	$(call run_in_all_modules,go run golang.org/x/vuln/cmd/govulncheck@latest ./...)
 
 cover:
 	$(call run_in_modules,$(GOTESTSUM) $(TESTFLAGS) $(COVERFLAGS) ./...)
@@ -64,10 +74,10 @@ cover-html:
 	go tool cover -html=coverage.out
 
 fmt:
-	$(call run_in_modules, $(GOLANGCI_LINT) fmt)
+	$(call run_in_all_modules, $(GOLANGCI_LINT) fmt)
 
 lint:
-	$(call run_in_modules,$(GOLANGCI_LINT) run)
+	$(call run_in_all_modules,$(GOLANGCI_LINT) run)
 
 pre-commit: check-pre-commit
 	pre-commit run --all-files
@@ -79,7 +89,7 @@ bench:
 	$(call run_in_modules,go test -bench=. -benchmem -run=^$$ ./...)
 
 tidy:
-	$(call run_in_modules,go mod tidy -v)
+	$(call run_in_all_modules,go mod tidy -v)
 
 update-deps: tidy
-	$(call run_in_modules,go get -u ./...)
+	$(call run_in_all_modules,go get -u ./...)
