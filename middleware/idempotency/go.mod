@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/middleware/idempotency
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.51.0
+	github.com/alexferl/zerohttp v0.57.0
 	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/stretchr/testify v1.11.1
