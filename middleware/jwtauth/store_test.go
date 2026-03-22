@@ -611,3 +611,28 @@ func TestRedisStorage(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestRedisStorage_Client(t *testing.T) {
+	storage, _ := createTestStorage(t)
+
+	client := storage.Client()
+	assert.NotNil(t, client)
+}
+
+func TestRedisStorage_Ping(t *testing.T) {
+	storage, _ := createTestStorage(t)
+	ctx := context.Background()
+
+	err := storage.Ping(ctx)
+	require.NoError(t, err)
+}
+
+func TestDefaultConfig(t *testing.T) {
+	cfg := DefaultConfig()
+
+	assert.NotNil(t, cfg.TokenKeyFunc)
+	assert.NotNil(t, cfg.KeySelector)
+	assert.Equal(t, "HS256", cfg.Algorithm.String())
+	assert.True(t, cfg.ValidateExpiration)
+	assert.True(t, cfg.ValidateNotBefore)
+}

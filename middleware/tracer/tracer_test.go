@@ -6,11 +6,23 @@ import (
 	"testing"
 
 	"github.com/alexferl/zerohttp/trace"
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
+
+func TestNewDefault(t *testing.T) {
+	t.Run("error with invalid endpoint", func(t *testing.T) {
+		ctx := context.Background()
+		tracer, shutdown, err := NewDefault(ctx, "test-service", "://invalid-url")
+
+		assert.Error(t, err)
+		assert.Nil(t, tracer)
+		assert.Nil(t, shutdown)
+	})
+}
 
 func TestNewOTelTracer(t *testing.T) {
 	exporter := tracetest.NewInMemoryExporter()

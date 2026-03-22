@@ -1,4 +1,4 @@
-# zerohttp-contrib
+# zerohttp-contrib [![Go Reference](https://pkg.go.dev/badge/github.com/alexferl/zerohttp-contrib.svg)](https://pkg.go.dev/github.com/alexferl/zerohttp-contrib) [![Go Report Card](https://goreportcard.com/badge/github.com/alexferl/zerohttp-contrib)](https://goreportcard.com/report/github.com/alexferl/zerohttp-contrib) [![Coverage Status](https://coveralls.io/repos/github/alexferl/zerohttp-contrib/badge.svg?branch=master)](https://coveralls.io/github/alexferl/zerohttp-contrib?branch=master)
 
 Optional adapters and extensions for [zerohttp](https://github.com/alexferl/zerohttp). Each module is standalone - import only what you need.
 
