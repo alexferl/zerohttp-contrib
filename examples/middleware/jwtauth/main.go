@@ -9,8 +9,7 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/jwtauth"
-	"github.com/alexferl/zerohttp/config"
-	"github.com/alexferl/zerohttp/middleware"
+	zjwtauth "github.com/alexferl/zerohttp/middleware/jwtauth"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/redis/go-redis/v9"
@@ -53,8 +52,8 @@ func main() {
 	}
 	tokenStore := jwtauth.NewTokenStore(cfg)
 
-	jwtCfg := config.JWTAuthConfig{
-		TokenStore:      tokenStore,
+	jwtCfg := zjwtauth.Config{
+		Store:           tokenStore,
 		RequiredClaims:  []string{"sub"},
 		ExcludedPaths:   []string{"/login"},
 		AccessTokenTTL:  15 * time.Minute,
@@ -65,20 +64,20 @@ func main() {
 	app.POST("/login", loginHandler(jwtCfg))
 
 	// Refresh token endpoint
-	app.POST("/auth/refresh", middleware.RefreshTokenHandler(jwtCfg))
+	app.POST("/auth/refresh", zjwtauth.RefreshTokenHandler(jwtCfg))
 
 	// Logout endpoint
-	app.POST("/auth/logout", middleware.LogoutTokenHandler(jwtCfg))
+	app.POST("/auth/logout", zjwtauth.LogoutTokenHandler(jwtCfg))
 
 	// Protected endpoints
-	app.Use(middleware.JWTAuth(jwtCfg))
+	app.Use(zjwtauth.New(jwtCfg))
 
 	app.GET("/api/profile", zh.HandlerFunc(profileHandler))
 
 	log.Fatal(app.Start())
 }
 
-func loginHandler(cfg config.JWTAuthConfig) zh.HandlerFunc {
+func loginHandler(cfg zjwtauth.Config) zh.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var req struct {
 			Username string `json:"username"`
@@ -103,12 +102,12 @@ func loginHandler(cfg config.JWTAuthConfig) zh.HandlerFunc {
 			"sid":   sessionID,
 		}
 
-		accessToken, err := middleware.GenerateAccessToken(r, claims, cfg)
+		accessToken, err := zjwtauth.GenerateAccessToken(r, claims, cfg)
 		if err != nil {
 			return zh.R.JSON(w, http.StatusInternalServerError, zh.M{"error": "failed to generate token"})
 		}
 
-		refreshToken, err := middleware.GenerateRefreshToken(r, claims, cfg)
+		refreshToken, err := zjwtauth.GenerateRefreshToken(r, claims, cfg)
 		if err != nil {
 			return zh.R.JSON(w, http.StatusInternalServerError, zh.M{"error": "failed to generate token"})
 		}
@@ -123,7 +122,7 @@ func loginHandler(cfg config.JWTAuthConfig) zh.HandlerFunc {
 }
 
 func profileHandler(w http.ResponseWriter, r *http.Request) error {
-	jwtClaims := middleware.GetJWTClaims(r)
+	jwtClaims := zjwtauth.GetClaims(r)
 
 	return zh.R.JSON(w, http.StatusOK, zh.M{
 		"subject": jwtClaims.Subject(),

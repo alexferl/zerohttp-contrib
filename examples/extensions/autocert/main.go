@@ -6,7 +6,6 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	zcautocert "github.com/alexferl/zerohttp-contrib/extensions/autocert"
-	"github.com/alexferl/zerohttp/config"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -23,12 +22,12 @@ func main() {
 	)
 
 	app := zh.New(
-		config.Config{
+		zh.Config{
 			Addr: ":80", // HTTP port for ACME challenges
-			TLS: config.TLSConfig{
+			TLS: zh.TLSConfig{
 				Addr: ":443", // HTTPS port
 			},
-			Extensions: config.ExtensionsConfig{
+			Extensions: zh.ExtensionsConfig{
 				AutocertManager: mgr, // Enable auto TLS
 			},
 		},

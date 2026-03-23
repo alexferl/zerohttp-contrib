@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/alexferl/zerohttp/config"
+	zwebsocket "github.com/alexferl/zerohttp/extensions/websocket"
 	"github.com/gorilla/websocket"
 )
 
@@ -103,7 +103,7 @@ func TestUpgrader_Upgrade_ImplementsInterface(t *testing.T) {
 	u := NewUpgrader(nil)
 
 	// Verify Upgrader implements config.WebSocketUpgrader
-	var _ config.WebSocketUpgrader = u
+	var _ zwebsocket.Upgrader = u
 }
 
 func TestUpgrader_Upgrade_Error(t *testing.T) {
@@ -222,7 +222,7 @@ func TestConn_RemoteAddr(t *testing.T) {
 
 func TestConn_ImplementsInterface(t *testing.T) {
 	// Verify Conn implements config.WebSocketConn
-	var _ config.WebSocketConn = (*Conn)(nil)
+	var _ zwebsocket.Connection = (*Conn)(nil)
 }
 
 func TestConn_Close(t *testing.T) {

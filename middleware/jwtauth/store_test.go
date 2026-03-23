@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	zconfig "github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/jwtauth"
 )
 
 // createTestStorage creates a miniredis-based storage for testing.
@@ -100,7 +100,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"sid": "session-abc",
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -111,13 +111,13 @@ func TestTokenStore_Generate(t *testing.T) {
 			"sid": "session-abc",
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.RefreshToken, 7*24*time.Hour)
+		token, err := store.Generate(ctx, claims, jwtauth.RefreshToken, 7*24*time.Hour)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
 
 	t.Run("nil claims returns empty map", func(t *testing.T) {
-		token, err := store.Generate(ctx, nil, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, nil, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -131,7 +131,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"jti": "token-id-123",
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 
@@ -148,7 +148,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"aud": []interface{}{"audience1", "audience2"},
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -159,7 +159,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"iat": time.Now(),
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -170,7 +170,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"nbf": time.Now(),
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -181,7 +181,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"exp": time.Now().Add(time.Hour).Unix(),
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -193,7 +193,7 @@ func TestTokenStore_Generate(t *testing.T) {
 			"nbf": float64(time.Now().Unix()),
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 	})
@@ -218,7 +218,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"sid": "session-abc",
 		}
 
-		token, err := store.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := store.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		validatedClaims, err := store.Validate(ctx, token)
@@ -252,7 +252,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"iss": "expected-issuer",
 		}
 
-		token, err := storeWithIssuer.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithIssuer.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithIssuer.Validate(ctx, token)
@@ -274,7 +274,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"iss": "wrong-issuer",
 		}
 
-		token, err := storeWithIssuer.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithIssuer.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithIssuer.Validate(ctx, token)
@@ -296,7 +296,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"aud": "expected-audience",
 		}
 
-		token, err := storeWithAudience.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithAudience.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithAudience.Validate(ctx, token)
@@ -318,7 +318,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"aud": "wrong-audience",
 		}
 
-		token, err := storeWithAudience.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithAudience.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithAudience.Validate(ctx, token)
@@ -340,7 +340,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"aud": []string{"other-audience", "expected-audience"},
 		}
 
-		token, err := storeWithAudience.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithAudience.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithAudience.Validate(ctx, token)
@@ -362,7 +362,7 @@ func TestTokenStore_Validate(t *testing.T) {
 			"aud": []interface{}{"expected-audience"},
 		}
 
-		token, err := storeWithAudience.Generate(ctx, claims, zconfig.AccessToken, 15*time.Minute)
+		token, err := storeWithAudience.Generate(ctx, claims, jwtauth.AccessToken, 15*time.Minute)
 		require.NoError(t, err)
 
 		_, err = storeWithAudience.Validate(ctx, token)

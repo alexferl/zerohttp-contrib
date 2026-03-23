@@ -6,9 +6,8 @@ import (
 
 	"github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/compress"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/alexferl/zerohttp/httpx"
-	"github.com/alexferl/zerohttp/middleware"
+	zcompress "github.com/alexferl/zerohttp/middleware/compress"
 )
 
 func main() {
@@ -16,16 +15,16 @@ func main() {
 
 	// Enable compression with Brotli, Zstd, Gzip, and Deflate
 	// The middleware will pick the best algorithm based on the Accept-Encoding header
-	app.Use(middleware.Compress(config.CompressConfig{
+	app.Use(zcompress.New(zcompress.Config{
 		Level: 6,
 		// Algorithms are checked in order, so put the most efficient ones first
-		Algorithms: []config.CompressionAlgorithm{
+		Algorithms: []zcompress.Algorithm{
 			"br",   // Brotli - best compression
 			"zstd", // Zstd - fast decompression
-			config.Gzip,
-			config.Deflate,
+			zcompress.Gzip,
+			zcompress.Deflate,
 		},
-		Providers: []config.CompressionProvider{
+		Providers: []zcompress.Provider{
 			compress.BrotliProvider{},
 			compress.ZstdProvider{},
 		},

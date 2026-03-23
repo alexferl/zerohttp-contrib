@@ -7,8 +7,7 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/tracer"
-	"github.com/alexferl/zerohttp/config"
-	"github.com/alexferl/zerohttp/middleware"
+	ztracer "github.com/alexferl/zerohttp/middleware/tracer"
 )
 
 func main() {
@@ -21,8 +20,8 @@ func main() {
 	}
 	defer shutdown()
 
-	app := zh.New(config.Config{Tracer: config.TracerConfig{TracerField: tracerImpl}})
-	app.Use(middleware.Tracer(tracerImpl))
+	app := zh.New(zh.Config{Tracer: ztracer.Config{TracerField: tracerImpl}})
+	app.Use(ztracer.New(tracerImpl))
 
 	app.GET("/", zh.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 		return zh.R.JSON(w, http.StatusOK, map[string]string{"message": "Hello!"})

@@ -11,7 +11,6 @@ import (
 	zh "github.com/alexferl/zerohttp"
 	zcautocert "github.com/alexferl/zerohttp-contrib/extensions/autocert"
 	zcwt "github.com/alexferl/zerohttp-contrib/extensions/webtransport"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/webtransport-go"
 	"golang.org/x/crypto/acme/autocert"
@@ -33,13 +32,13 @@ func main() {
 
 	// Create zerohttp app with autocert manager
 	app := zh.New(
-		config.Config{
+		zh.Config{
 			DisableDefaultMiddlewares: true,
 			Addr:                      ":80", // HTTP port for ACME challenges
-			TLS: config.TLSConfig{
+			TLS: zh.TLSConfig{
 				Addr: ":443", // HTTPS port
 			},
-			Extensions: config.ExtensionsConfig{
+			Extensions: zh.ExtensionsConfig{
 				AutocertManager: mgr,
 			},
 		},

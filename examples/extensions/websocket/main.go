@@ -7,7 +7,6 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	zcws "github.com/alexferl/zerohttp-contrib/extensions/websocket"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/gorilla/websocket"
 )
 
@@ -21,9 +20,9 @@ func main() {
 	// Create zerohttp server with WebSocket support
 	// Disable default middlewares to avoid CSP blocking inline styles/scripts in the demo
 	app := zh.New(
-		config.Config{
+		zh.Config{
 			DisableDefaultMiddlewares: true,
-			Extensions: config.ExtensionsConfig{
+			Extensions: zh.ExtensionsConfig{
 				WebSocketUpgrader: zcws.NewUpgrader(gupgrader),
 			},
 		},

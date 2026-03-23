@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/idempotency"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -23,7 +23,7 @@ type RedisClient interface {
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
 }
 
-// RedisStore implements config.IdempotencyStore using Redis for distributed
+// RedisStore implements idempotency.Store using Redis for distributed
 // idempotency across multiple server instances.
 type RedisStore struct {
 	client    RedisClient
@@ -31,7 +31,7 @@ type RedisStore struct {
 	lockTTL   time.Duration
 }
 
-// redisRecord is a JSON-serializable representation of config.IdempotencyRecord.
+// redisRecord is a JSON-serializable representation of idempotency.Record.
 type redisRecord struct {
 	StatusCode int       `json:"status_code"`
 	Headers    []string  `json:"headers"`
@@ -78,21 +78,21 @@ func (s *RedisStore) makeLockKey(key string) string {
 // Get retrieves a cached response by key from Redis.
 // Returns the cached record, true if found, and any error.
 // If not found, returns false and nil error.
-func (s *RedisStore) Get(ctx context.Context, key string) (config.IdempotencyRecord, bool, error) {
+func (s *RedisStore) Get(ctx context.Context, key string) (idempotency.Record, bool, error) {
 	data, err := s.client.Get(ctx, s.makeKey(key)).Bytes()
 	if errors.Is(err, redis.Nil) {
-		return config.IdempotencyRecord{}, false, nil
+		return idempotency.Record{}, false, nil
 	}
 	if err != nil {
-		return config.IdempotencyRecord{}, false, err
+		return idempotency.Record{}, false, err
 	}
 
 	var record redisRecord
 	if err := json.Unmarshal(data, &record); err != nil {
-		return config.IdempotencyRecord{}, false, fmt.Errorf("failed to unmarshal idempotency record: %w", err)
+		return idempotency.Record{}, false, fmt.Errorf("failed to unmarshal idempotency record: %w", err)
 	}
 
-	return config.IdempotencyRecord{
+	return idempotency.Record{
 		StatusCode: record.StatusCode,
 		Headers:    record.Headers,
 		Body:       record.Body,
@@ -102,7 +102,7 @@ func (s *RedisStore) Get(ctx context.Context, key string) (config.IdempotencyRec
 
 // Set stores a response in Redis with the given TTL.
 // Returns an error if the operation fails.
-func (s *RedisStore) Set(ctx context.Context, key string, record config.IdempotencyRecord, ttl time.Duration) error {
+func (s *RedisStore) Set(ctx context.Context, key string, record idempotency.Record, ttl time.Duration) error {
 	redisRecord := redisRecord{
 		StatusCode: record.StatusCode,
 		Headers:    record.Headers,

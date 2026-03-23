@@ -6,16 +6,17 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/alexferl/zerohttp/config"
+	zautocert "github.com/alexferl/zerohttp/extensions/autocert"
+	zhttp3 "github.com/alexferl/zerohttp/extensions/http3"
 	"github.com/quic-go/quic-go/http3"
 )
 
 var (
-	_ config.HTTP3Server             = (*Server)(nil)
-	_ config.HTTP3ServerWithAutocert = (*Server)(nil)
+	_ zhttp3.Server             = (*Server)(nil)
+	_ zhttp3.ServerWithAutocert = (*Server)(nil)
 )
 
-// Server wraps quic-go's http3.Server to implement zerohttp's HTTP3Server interface.
+// Server wraps quic-go's http3.Server to implement zerohttp's Server interface.
 type Server struct {
 	*http3.Server
 }
@@ -50,7 +51,7 @@ func (s *Server) Close() error {
 // If s.TLSConfig is already set, it will be used as-is (caller is
 // responsible for configuring GetCertificate and NextProtos).
 // If not set, a TLSConfig with autocert settings will be created.
-func (s *Server) ListenAndServeTLSWithAutocert(manager config.AutocertManager) error {
+func (s *Server) ListenAndServeTLSWithAutocert(manager zautocert.Manager) error {
 	if s.TLSConfig == nil {
 		s.TLSConfig = &tls.Config{
 			GetCertificate: manager.GetCertificate,
@@ -62,16 +63,6 @@ func (s *Server) ListenAndServeTLSWithAutocert(manager config.AutocertManager) e
 
 // NewWithAutocert creates a new HTTP/3 server pre-configured for autocert.
 // This is a convenience function for use with StartAutoTLS.
-// Example:
-//
-//	mgr := autocert.New(autocert.DirCache("/var/cache/certs"), "example.com")
-//	app := zerohttp.New(config.WithAutocertManager(mgr))
-//	h3 := http3.NewWithAutocert(":443", app, mgr)
-//	app.SetHTTP3Server(h3)
-//	app.StartAutoTLS()
-//
-// NewWithAutocert creates a new HTTP/3 server pre-configured for autocert.
-// This is a convenience function for use with StartAutoTLS.
 // If the server already has a TLSConfig set, it will be used as-is.
 // Example:
 //
@@ -80,7 +71,7 @@ func (s *Server) ListenAndServeTLSWithAutocert(manager config.AutocertManager) e
 //	h3 := http3.NewWithAutocert(":443", app, mgr)
 //	app.SetHTTP3Server(h3)
 //	app.StartAutoTLS()
-func NewWithAutocert(addr string, handler http.Handler, manager config.AutocertManager) *Server {
+func NewWithAutocert(addr string, handler http.Handler, manager zautocert.Manager) *Server {
 	s := New(addr, handler)
 	if s.TLSConfig == nil {
 		s.TLSConfig = &tls.Config{

@@ -5,17 +5,18 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/alexferl/zerohttp/config"
+	zautocert "github.com/alexferl/zerohttp/extensions/autocert"
+	zwebtransport "github.com/alexferl/zerohttp/extensions/webtransport"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/webtransport-go"
 )
 
 var (
-	_ config.WebTransportServer             = (*Server)(nil)
-	_ config.WebTransportServerWithAutocert = (*Server)(nil)
+	_ zwebtransport.Server             = (*Server)(nil)
+	_ zwebtransport.ServerWithAutocert = (*Server)(nil)
 )
 
-// Server wraps webtransport.Server to implement zerohttp's WebTransportServer interface.
+// Server wraps webtransport.Server to implement zerohttp's Server interface.
 type Server struct {
 	*webtransport.Server
 }
@@ -54,7 +55,7 @@ func (s *Server) Close() error {
 // If s.H3.TLSConfig is already set, it will be used as-is (caller is
 // responsible for configuring GetCertificate and NextProtos).
 // If not set, a TLSConfig with autocert settings will be created.
-func (s *Server) ListenAndServeTLSWithAutocert(manager config.AutocertManager) error {
+func (s *Server) ListenAndServeTLSWithAutocert(manager zautocert.Manager) error {
 	if s.H3.TLSConfig == nil {
 		s.H3.TLSConfig = &tls.Config{
 			GetCertificate: manager.GetCertificate,

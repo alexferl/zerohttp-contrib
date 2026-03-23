@@ -10,7 +10,7 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/lestrrat-go/jwx/v3/jwt"
 
-	zconfig "github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/jwtauth"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 	errInvalidAudience = errors.New("invalid audience")
 )
 
-// TokenStore implements the zerohttp config.TokenStore interface using
+// TokenStore implements the zerohttp jwtauth.Store interface using
 // github.com/lestrrat-go/jwx/v3 for JWT operations.
 //
 // This implementation supports multiple signing algorithms (HS256, RS256, ES256, EdDSA)
@@ -106,7 +106,7 @@ func NewTokenStore(cfg Config) *TokenStore {
 
 // Validate parses and validates a JWT token, returning the claims as map[string]any.
 //
-// This method implements the config.TokenStore interface for zerohttp.
+// This method implements the jwtauth.Store interface for zerohttp.
 // It performs the following validations:
 //   - Signature verification
 //   - Expiration check (if enabled in config)
@@ -116,7 +116,7 @@ func NewTokenStore(cfg Config) *TokenStore {
 //
 // The returned claims are normalized to map[string]any for maximum compatibility
 // with the zerohttp middleware.
-func (s *TokenStore) Validate(ctx context.Context, tokenString string) (zconfig.JWTClaims, error) {
+func (s *TokenStore) Validate(ctx context.Context, tokenString string) (jwtauth.JWTClaims, error) {
 	// Parse the token with signature verification
 	// We need to use the concrete jwk.Key type for jwt.ParseString
 	jwkKey, err := s.getJWKKey(0)
@@ -170,7 +170,7 @@ func (s *TokenStore) Validate(ctx context.Context, tokenString string) (zconfig.
 
 // Generate creates a new signed JWT token for the given claims.
 //
-// This method implements the config.TokenStore interface for zerohttp.
+// This method implements the jwtauth.Store interface for zerohttp.
 // It automatically handles:
 //   - Setting the token type claim ("type": "refresh" for refresh tokens)
 //   - Setting the expiration time based on the TTL
@@ -179,7 +179,7 @@ func (s *TokenStore) Validate(ctx context.Context, tokenString string) (zconfig.
 //
 // The claims parameter can be either map[string]any or any type that can be
 // converted to claims (via reflection or by implementing a Claims interface).
-func (s *TokenStore) Generate(ctx context.Context, claims zconfig.JWTClaims, tokenType zconfig.TokenType, ttl time.Duration) (string, error) {
+func (s *TokenStore) Generate(ctx context.Context, claims jwtauth.JWTClaims, tokenType jwtauth.TokenType, ttl time.Duration) (string, error) {
 	builder := jwt.NewBuilder()
 
 	// Extract map claims and add to builder
@@ -268,8 +268,8 @@ func (s *TokenStore) Generate(ctx context.Context, claims zconfig.JWTClaims, tok
 	}
 
 	// Add token type for refresh tokens
-	if tokenType == zconfig.RefreshToken {
-		builder.Claim("type", zconfig.TokenTypeRefresh)
+	if tokenType == jwtauth.RefreshToken {
+		builder.Claim("type", jwtauth.TokenTypeRefresh)
 	}
 
 	// Build the token
@@ -439,7 +439,7 @@ func tokenToMap(token jwt.Token) map[string]any {
 }
 
 // normalizeClaims converts various claim types to map[string]any.
-func normalizeClaims(claims zconfig.JWTClaims) (map[string]any, error) {
+func normalizeClaims(claims jwtauth.JWTClaims) (map[string]any, error) {
 	if claims == nil {
 		return make(map[string]any), nil
 	}

@@ -6,11 +6,11 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/alexferl/zerohttp/config"
+	zautocert "github.com/alexferl/zerohttp/extensions/autocert"
 	"golang.org/x/crypto/acme/autocert"
 )
 
-var _ config.AutocertManager = (*Manager)(nil)
+var _ zautocert.Manager = (*Manager)(nil)
 
 // Manager wraps autocert.Manager to implement zerohttp's AutocertManager interface.
 type Manager struct {
