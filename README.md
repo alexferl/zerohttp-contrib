@@ -56,18 +56,3 @@ The zerohttp core is intentionally minimal with zero dependencies. This contrib 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
-refactor: update for zerohttp API changes
-
-Move imports from config package to specific middleware/extension packages:
-- config.CompressionEncoder/Provider -> compress.Encoder/Provider
-- config.CacheRecord -> cache.Record
-- config.AccessToken/RefreshToken -> jwtauth.AccessToken/RefreshToken
-- config.IdempotencyRecord -> idempotency.Record
-- config.RateLimitAlgorithm -> ratelimit.Algorithm
-- config.AutocertManager -> autocert.Manager
-- config.HTTP3Server -> http3.Server
-- config.WebTransportServer -> webtransport.Server
-- config.WebSocketConn -> websocket.Connection
-
-Update all examples and fix test data.
