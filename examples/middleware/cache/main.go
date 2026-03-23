@@ -7,13 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/cache"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/alexferl/zerohttp/httpx"
-	"github.com/alexferl/zerohttp/middleware"
+	zcache "github.com/alexferl/zerohttp/middleware/cache"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -45,7 +43,7 @@ func main() {
 		}
 		return zh.R.JSON(w, http.StatusOK, data)
 	}),
-		middleware.Cache(config.CacheConfig{
+		zcache.New(zcache.Config{
 			CacheControl: "public, max-age=30",
 			DefaultTTL:   30 * time.Second,
 			ETag:         true,
@@ -66,7 +64,7 @@ func main() {
 		}
 		return zh.R.JSON(w, http.StatusOK, data)
 	}),
-		middleware.Cache(config.CacheConfig{
+		zcache.New(zcache.Config{
 			CacheControl: "private, max-age=60",
 			DefaultTTL:   time.Minute,
 			ETag:         true,
@@ -95,7 +93,7 @@ func main() {
 			"maintenance": false,
 		})
 	}),
-		middleware.Cache(config.CacheConfig{
+		zcache.New(zcache.Config{
 			CacheControl: "public, max-age=3600, immutable",
 			DefaultTTL:   time.Hour,
 			Store:        cacheStore,
@@ -115,7 +113,7 @@ func main() {
 </html>`, time.Now().Format(time.RFC3339))
 		return zh.R.HTML(w, http.StatusOK, html)
 	}),
-		middleware.Cache(config.CacheConfig{
+		zcache.New(zcache.Config{
 			CacheControl: "public, max-age=120",
 			DefaultTTL:   2 * time.Minute,
 			Store:        cacheStore,
@@ -131,7 +129,7 @@ func main() {
 			"updatedAt":   time.Now().Unix(),
 		})
 	}),
-		middleware.Cache(config.CacheConfig{
+		zcache.New(zcache.Config{
 			CacheControl: "public, max-age=10",
 			DefaultTTL:   10 * time.Second,
 			Store:        cacheStore,

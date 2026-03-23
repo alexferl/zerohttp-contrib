@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/extensions/http3"
 )
 
 // mockAutocertManager implements config.AutocertManager for testing
@@ -87,11 +87,11 @@ func TestListenAndServeTLS(t *testing.T) {
 func TestServer_ImplementsInterfaces(t *testing.T) {
 	s := New(":8443", nil)
 
-	// Verify Server implements config.HTTP3Server
-	var _ config.HTTP3Server = s
+	// Verify Server implements http3.Server
+	var _ http3.Server = s
 
-	// Verify Server implements config.HTTP3ServerWithAutocert
-	var _ config.HTTP3ServerWithAutocert = s
+	// Verify Server implements http3.ServerWithAutocert
+	var _ http3.ServerWithAutocert = s
 }
 
 func TestShutdown(t *testing.T) {

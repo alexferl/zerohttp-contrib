@@ -3,11 +3,11 @@ package compress
 import (
 	"io"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/compress"
 	"github.com/klauspost/compress/zstd"
 )
 
-// ZstdEncoder implements config.CompressionEncoder for Zstd compression.
+// ZstdEncoder implements compress.Encoder for Zstd compression.
 // Zstd provides excellent compression ratios with very fast decompression.
 type ZstdEncoder struct {
 	level zstd.EncoderLevel
@@ -29,19 +29,19 @@ func (e ZstdEncoder) Encoding() string {
 	return "zstd"
 }
 
-// ZstdProvider implements config.CompressionProvider for Zstd.
+// ZstdProvider implements compress.Provider for Zstd.
 // Use this with middleware.Compress to enable Zstd compression:
 //
-//	app.Use(middleware.Compress(config.CompressConfig{
-//	    Algorithms: []config.CompressionAlgorithm{"zstd", config.Gzip},
-//	    Providers:  []config.CompressionProvider{compress.ZstdProvider{}},
+//	app.Use(middleware.Compress(compress.Config{
+//	    Algorithms: []compress.Algorithm{"zstd", compress.Gzip},
+//	    Providers:  []compress.Provider{compress.ZstdProvider{}},
 //	}))
 //
 // To specify a custom compression level:
 //
-//	app.Use(middleware.Compress(config.CompressConfig{
-//	    Algorithms: []config.CompressionAlgorithm{"zstd"},
-//	    Providers: []config.CompressionProvider{
+//	app.Use(middleware.Compress(compress.Config{
+//	    Algorithms: []compress.Algorithm{"zstd"},
+//	    Providers: []compress.Provider{
 //	        compress.ZstdProvider{Level: zstd.SpeedBestCompression},
 //	    },
 //	}))
@@ -54,7 +54,7 @@ type ZstdProvider struct {
 }
 
 // GetEncoder returns a ZstdEncoder for "zstd" encoding.
-func (p ZstdProvider) GetEncoder(encoding string) config.CompressionEncoder {
+func (p ZstdProvider) GetEncoder(encoding string) compress.Encoder {
 	if encoding == "zstd" {
 		level := p.Level
 		if level == 0 {

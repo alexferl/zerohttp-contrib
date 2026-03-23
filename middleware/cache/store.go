@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/cache"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -21,14 +21,14 @@ type RedisClient interface {
 	Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd
 }
 
-// RedisStore implements config.CacheStore using Redis as the backend.
+// RedisStore implements cache.Store using Redis as the backend.
 // This allows caching to work across multiple server instances.
 type RedisStore struct {
 	client RedisClient
 	prefix string
 }
 
-// cacheRecord is a JSON-serializable representation of config.CacheRecord.
+// cacheRecord is a JSON-serializable representation of cache.Record.
 type cacheRecord struct {
 	StatusCode   int                 `json:"status_code"`
 	Headers      map[string][]string `json:"headers"`
@@ -61,21 +61,21 @@ func (s *RedisStore) makeKey(key string) string {
 // Get retrieves a cached response by key from Redis.
 // Returns the cached record, true if found, and any error.
 // If not found, returns false and nil error.
-func (s *RedisStore) Get(ctx context.Context, key string) (config.CacheRecord, bool, error) {
+func (s *RedisStore) Get(ctx context.Context, key string) (cache.Record, bool, error) {
 	data, err := s.client.Get(ctx, s.makeKey(key)).Bytes()
 	if errors.Is(err, redis.Nil) {
-		return config.CacheRecord{}, false, nil
+		return cache.Record{}, false, nil
 	}
 	if err != nil {
-		return config.CacheRecord{}, false, err
+		return cache.Record{}, false, err
 	}
 
 	var record cacheRecord
 	if err := json.Unmarshal(data, &record); err != nil {
-		return config.CacheRecord{}, false, fmt.Errorf("failed to unmarshal cache record: %w", err)
+		return cache.Record{}, false, fmt.Errorf("failed to unmarshal cache record: %w", err)
 	}
 
-	return config.CacheRecord{
+	return cache.Record{
 		StatusCode:   record.StatusCode,
 		Headers:      record.Headers,
 		Body:         record.Body,
@@ -87,7 +87,7 @@ func (s *RedisStore) Get(ctx context.Context, key string) (config.CacheRecord, b
 
 // Set stores a response in Redis with the given TTL.
 // Returns an error if the operation fails.
-func (s *RedisStore) Set(ctx context.Context, key string, record config.CacheRecord, ttl time.Duration) error {
+func (s *RedisStore) Set(ctx context.Context, key string, record cache.Record, ttl time.Duration) error {
 	redisRecord := cacheRecord{
 		StatusCode:   record.StatusCode,
 		Headers:      record.Headers,

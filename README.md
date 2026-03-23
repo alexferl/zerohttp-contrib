@@ -52,3 +52,22 @@ The modules in this repository demonstrate how to integrate specific third-party
 If you need to use a different library (e.g., zap instead of zerolog, or a different Redis client), **create your own module**. Copy the adapter code from this repo, modify it for your library, and maintain it in your own project or as a separate module.
 
 The zerohttp core is intentionally minimal with zero dependencies. This contrib repo provides examples - you are encouraged to build and maintain your own adapters for your specific needs.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+refactor: update for zerohttp API changes
+
+Move imports from config package to specific middleware/extension packages:
+- config.CompressionEncoder/Provider -> compress.Encoder/Provider
+- config.CacheRecord -> cache.Record
+- config.AccessToken/RefreshToken -> jwtauth.AccessToken/RefreshToken
+- config.IdempotencyRecord -> idempotency.Record
+- config.RateLimitAlgorithm -> ratelimit.Algorithm
+- config.AutocertManager -> autocert.Manager
+- config.HTTP3Server -> http3.Server
+- config.WebTransportServer -> webtransport.Server
+- config.WebSocketConn -> websocket.Connection
+
+Update all examples and fix test data.

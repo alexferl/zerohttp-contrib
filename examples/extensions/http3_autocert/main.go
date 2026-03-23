@@ -8,7 +8,6 @@ import (
 	zh "github.com/alexferl/zerohttp"
 	zcautocert "github.com/alexferl/zerohttp-contrib/extensions/autocert"
 	"github.com/alexferl/zerohttp-contrib/extensions/http3"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/alexferl/zerohttp/httpx"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -29,12 +28,12 @@ func main() {
 
 	// Create zerohttp server with autocert manager
 	app := zh.New(
-		config.Config{
+		zh.Config{
 			Addr: ":80",
-			TLS: config.TLSConfig{
+			TLS: zh.TLSConfig{
 				Addr: ":443",
 			},
-			Extensions: config.ExtensionsConfig{
+			Extensions: zh.ExtensionsConfig{
 				AutocertManager: mgr,
 			},
 		},

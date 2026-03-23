@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/idempotency"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func TestRedisStore_SetAndGet(t *testing.T) {
 	store := NewRedisStore(client, "idemp")
 	ctx := context.Background()
 
-	record := config.IdempotencyRecord{
+	record := idempotency.Record{
 		StatusCode: 200,
 		Headers:    []string{"Content-Type", "application/json"},
 		Body:       []byte(`{"success":true}`),
@@ -85,7 +85,7 @@ func TestRedisStore_Set_WithTTL(t *testing.T) {
 	store := NewRedisStore(client, "idemp")
 	ctx := context.Background()
 
-	record := config.IdempotencyRecord{
+	record := idempotency.Record{
 		StatusCode: 201,
 		Body:       []byte(`created`),
 	}
@@ -187,7 +187,7 @@ func TestRedisStore_KeyPrefix(t *testing.T) {
 	store := NewRedisStore(client, "myprefix")
 	ctx := context.Background()
 
-	record := config.IdempotencyRecord{
+	record := idempotency.Record{
 		StatusCode: 200,
 		Body:       []byte(`ok`),
 	}
@@ -207,7 +207,7 @@ func TestRedisStore_NoPrefix(t *testing.T) {
 	store := NewRedisStore(client, "")
 	ctx := context.Background()
 
-	record := config.IdempotencyRecord{
+	record := idempotency.Record{
 		StatusCode: 200,
 		Body:       []byte(`ok`),
 	}

@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/examples/middleware/compress
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.57.0
+	github.com/alexferl/zerohttp v0.58.0
 	github.com/alexferl/zerohttp-contrib/middleware/compress v0.2.0
 )
 

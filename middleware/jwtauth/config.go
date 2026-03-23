@@ -18,7 +18,7 @@ import (
 //
 //	cfg := jwtauth.Config{
 //	    KeySet:  keySet,  // From jwk.Fetch() or jwk.Import()
-//	    Storage: jwtauth.NewInMemoryStorage(),
+//	    Storage: jwtauth.NewMemoryStorage(),
 //	}
 //	store := jwtauth.NewTokenStore(cfg)
 type Config struct {
@@ -35,7 +35,7 @@ type Config struct {
 	KeySet jwk.Set
 
 	// Storage handles token revocation persistence.
-	// Required. Use NewInMemoryStorage() for development/testing,
+	// Required. Use NewMemoryStorage() for development/testing,
 	// or implement the Storage interface for production (Redis, PostgreSQL, etc.).
 	Storage Storage
 

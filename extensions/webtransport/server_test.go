@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/extensions/webtransport"
 	"github.com/quic-go/quic-go/http3"
 )
 
@@ -70,11 +70,11 @@ func TestServer_ImplementsInterfaces(t *testing.T) {
 	}
 	s := New(h3Server)
 
-	// Verify Server implements config.WebTransportServer
-	var _ config.WebTransportServer = s
+	// Verify Server implements webtransport.Server
+	var _ webtransport.Server = s
 
-	// Verify Server implements config.WebTransportServerWithAutocert
-	var _ config.WebTransportServerWithAutocert = s
+	// Verify Server implements webtransport.ServerWithAutocert
+	var _ webtransport.ServerWithAutocert = s
 }
 
 func TestListenAndServeTLS(t *testing.T) {

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	zh "github.com/alexferl/zerohttp"
-	"github.com/alexferl/zerohttp/config"
 	"github.com/alexferl/zerohttp/log"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
@@ -433,8 +432,8 @@ func (m *mockRouter) StaticDir(dir string, fallback bool, apiPrefix ...string)  
 func (m *mockRouter) ServeMux() *http.ServeMux                                                    { return nil }
 func (m *mockRouter) Logger() log.Logger                                                          { return nil }
 func (m *mockRouter) SetLogger(logger log.Logger)                                                 {}
-func (m *mockRouter) Config() config.Config                                                       { return config.Config{} }
-func (m *mockRouter) SetConfig(cfg config.Config)                                                 {}
+func (m *mockRouter) Config() zh.Config                                                           { return zh.Config{} }
+func (m *mockRouter) SetConfig(cfg zh.Config)                                                     {}
 
 func (m *mockRouter) addRoute(method, path string, handler http.Handler) {
 	if m.routes[method] == nil {

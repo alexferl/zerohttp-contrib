@@ -4,11 +4,11 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/alexferl/zerohttp/config"
+	zwebsocket "github.com/alexferl/zerohttp/extensions/websocket"
 	"github.com/gorilla/websocket"
 )
 
-// Upgrader wraps gorilla/websocket to implement config.WebSocketUpgrader
+// Upgrader wraps gorilla/websocket to implement websocket.Upgrader
 type Upgrader struct {
 	upgrader *websocket.Upgrader
 }
@@ -22,7 +22,7 @@ func NewUpgrader(upgrader *websocket.Upgrader) *Upgrader {
 	return &Upgrader{upgrader: upgrader}
 }
 
-func (m *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request) (config.WebSocketConn, error) {
+func (m *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request) (zwebsocket.Connection, error) {
 	conn, err := m.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (m *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request) (config.WebSo
 	return &Conn{conn: conn}, nil
 }
 
-// Conn wraps gorilla/websocket.Conn to implement config.WebSocketConn
+// Conn wraps gorilla/websocket.Conn to implement zwebsocket.Connection
 type Conn struct {
 	conn *websocket.Conn
 }

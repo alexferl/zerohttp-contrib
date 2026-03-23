@@ -7,9 +7,8 @@ import (
 	"time"
 
 	zh "github.com/alexferl/zerohttp"
-	"github.com/alexferl/zerohttp-contrib/middleware/ratelimit"
-	"github.com/alexferl/zerohttp/config"
-	"github.com/alexferl/zerohttp/middleware"
+	contribRatelimit "github.com/alexferl/zerohttp-contrib/middleware/ratelimit"
+	zratelimit "github.com/alexferl/zerohttp/middleware/ratelimit"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -29,11 +28,11 @@ func main() {
 	// Create Redis-backed rate limit store using the contrib package
 	rate := 10
 	window := time.Minute
-	store := ratelimit.NewRedisStore(client, config.SlidingWindow, window, rate)
+	store := contribRatelimit.NewRedisStore(client, zratelimit.SlidingWindow, window, rate)
 
 	// Configure the server with Redis store
 	app := zh.New()
-	app.Use(middleware.RateLimit(config.RateLimitConfig{
+	app.Use(zratelimit.New(zratelimit.Config{
 		Store:          store,
 		Rate:           rate,
 		Window:         window,

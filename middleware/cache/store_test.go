@@ -3,10 +3,11 @@ package cache
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	"github.com/alexferl/zerohttp/middleware/cache"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -83,7 +84,7 @@ func TestRedisStore_Get(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.False(t, found)
-		assert.Equal(t, config.CacheRecord{}, record)
+		assert.Equal(t, cache.Record{}, record)
 	})
 
 	t.Run("cache hit", func(t *testing.T) {
@@ -101,7 +102,7 @@ func TestRedisStore_Get(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.True(t, found)
-		assert.Equal(t, 200, record.StatusCode)
+		assert.Equal(t, http.StatusOK, record.StatusCode)
 		assert.Equal(t, map[string][]string{"Content-Type": {"application/json"}}, record.Headers)
 	})
 
@@ -118,7 +119,7 @@ func TestRedisStore_Get(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "connection refused")
 		assert.False(t, found)
-		assert.Equal(t, config.CacheRecord{}, record)
+		assert.Equal(t, cache.Record{}, record)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
@@ -134,7 +135,7 @@ func TestRedisStore_Get(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to unmarshal cache record")
 		assert.False(t, found)
-		assert.Equal(t, config.CacheRecord{}, record)
+		assert.Equal(t, cache.Record{}, record)
 	})
 }
 
@@ -156,8 +157,8 @@ func TestRedisStore_Set(t *testing.T) {
 		}
 
 		store := NewRedisStore(mockClient, "test")
-		record := config.CacheRecord{
-			StatusCode: 200,
+		record := cache.Record{
+			StatusCode: http.StatusOK,
 			Headers:    map[string][]string{"Content-Type": {"application/json"}},
 			Body:       []byte(`{"hello":"world"}`),
 			ETag:       `"abc123"`,
@@ -181,8 +182,8 @@ func TestRedisStore_Set(t *testing.T) {
 		}
 
 		store := NewRedisStore(mockClient, "test")
-		record := config.CacheRecord{
-			StatusCode: 200,
+		record := cache.Record{
+			StatusCode: http.StatusOK,
 			Body:       []byte(`test`),
 		}
 

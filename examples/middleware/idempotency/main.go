@@ -6,8 +6,7 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/idempotency"
-	zconfig "github.com/alexferl/zerohttp/config"
-	"github.com/alexferl/zerohttp/middleware"
+	zidempotency "github.com/alexferl/zerohttp/middleware/idempotency"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -23,7 +22,7 @@ func main() {
 	app := zh.New()
 
 	// Use idempotency middleware with Redis store
-	app.Use(middleware.Idempotency(zconfig.IdempotencyConfig{
+	app.Use(zidempotency.New(zidempotency.Config{
 		Store: store,
 	}))
 

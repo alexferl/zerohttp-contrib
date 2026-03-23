@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alexferl/zerohttp/config"
+	zratelimit "github.com/alexferl/zerohttp/middleware/ratelimit"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -22,13 +22,13 @@ type RedisClient interface {
 	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
 }
 
-// RedisStore implements config.RateLimitStore using Redis for distributed
+// RedisStore implements ratelimit.Store using Redis for distributed
 // rate limiting across multiple server instances.
 type RedisStore struct {
 	client    RedisClient
 	window    time.Duration
 	rate      int
-	algorithm config.RateLimitAlgorithm
+	algorithm zratelimit.Algorithm
 	keyPrefix string
 }
 
@@ -36,7 +36,7 @@ type RedisStore struct {
 // This allows rate limiting to work across multiple server instances.
 // The client can be *redis.Client, *redis.ClusterClient, redis.UniversalClient, or any type
 // implementing the RedisClient interface.
-func NewRedisStore(client RedisClient, algorithm config.RateLimitAlgorithm, window time.Duration, rate int) *RedisStore {
+func NewRedisStore(client RedisClient, algorithm zratelimit.Algorithm, window time.Duration, rate int) *RedisStore {
 	return &RedisStore{
 		client:    client,
 		window:    window,
@@ -46,7 +46,7 @@ func NewRedisStore(client RedisClient, algorithm config.RateLimitAlgorithm, wind
 	}
 }
 
-// CheckAndRecord implements config.RateLimitStore using Redis.
+// CheckAndRecord implements the Store interface using Redis.
 // Uses sliding window algorithm with Redis sorted sets.
 func (s *RedisStore) CheckAndRecord(ctx context.Context, key string, now time.Time) (bool, int, time.Time) {
 	windowStart := now.Add(-s.window)
