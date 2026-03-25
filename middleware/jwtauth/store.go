@@ -2,454 +2,146 @@ package jwtauth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v3/jwa"
-	"github.com/lestrrat-go/jwx/v3/jwk"
-	"github.com/lestrrat-go/jwx/v3/jwt"
-
-	"github.com/alexferl/zerohttp/middleware/jwtauth"
+	"github.com/redis/go-redis/v9"
 )
 
-var (
-	// errNoKeys is returned when the key set is empty.
-	errNoKeys = errors.New("key set contains no keys")
-
-	// errKeyNotFound is returned when a key cannot be found in the set.
-	errKeyNotFound = errors.New("key not found in key set")
-
-	// errMissingKeySet is returned when KeySet is not provided.
-	errMissingKeySet = errors.New("key set is required")
-
-	// errMissingStorage is returned when Storage is not provided.
-	errMissingStorage = errors.New("storage is required")
-
-	// errInvalidIssuer is returned when the issuer claim doesn't match.
-	errInvalidIssuer = errors.New("invalid issuer")
-
-	// errInvalidAudience is returned when the audience claim doesn't match.
-	errInvalidAudience = errors.New("invalid audience")
-)
-
-// TokenStore implements the zerohttp jwtauth.Store interface using
-// github.com/lestrrat-go/jwx/v3 for JWT operations.
+// Store defines the interface for token revocation storage.
+// Users can implement this interface to plug in their preferred storage solution
+// (Redis, PostgreSQL, MySQL, DynamoDB, etc.) for token revocation.
 //
-// This implementation supports multiple signing algorithms (HS256, RS256, ES256, EdDSA)
-// and provides pluggable storage for token revocation.
+// The storage is used to:
+//   - Track revoked tokens (by sub:jti, sub:sid, or sub:exp)
+//   - Track revoked sessions (by sid)
+//   - Support logout and token refresh workflows
+//
+// Example implementations:
+//   - RedisStore: production-ready Redis-backed storage (provided by this package)
+//   - SQLStorage: database-backed storage with connection pooling
+//
+// All methods accept context.Context for cancellation and timeout support.
+type Store interface {
+	// RevokeToken marks a specific token as revoked.
+	// The key is typically "sub:jti", "sub:sid", or "sub:exp" - something unique to the token instance.
+	// ttl indicates how long the revocation should be stored (typically token expiration time).
+	//
+	// Implementations should handle duplicate revocations gracefully (idempotent).
+	RevokeToken(ctx context.Context, key string, ttl time.Duration) error
+
+	// RevokeSession marks an entire session as revoked.
+	// This invalidates all tokens with the matching sid claim.
+	// ttl indicates how long the revocation should be stored.
+	//
+	// Implementations should handle duplicate revocations gracefully (idempotent).
+	RevokeSession(ctx context.Context, sid string, ttl time.Duration) error
+
+	// IsTokenRevoked checks if a specific token has been revoked.
+	// Returns true if the token was revoked, false otherwise.
+	IsTokenRevoked(ctx context.Context, key string) (bool, error)
+
+	// IsSessionRevoked checks if a session has been revoked.
+	// Returns true if the session was revoked, false otherwise.
+	IsSessionRevoked(ctx context.Context, sid string) (bool, error)
+
+	// Close closes the storage connection/resources.
+	// Implementations should ensure this is safe to call multiple times.
+	Close() error
+}
+
+// RedisStore implements the Store interface using Redis.
+// This provides a production-ready distributed storage solution
+// for token revocation that works across multiple server instances.
+//
+// The client can be *redis.Client, *redis.ClusterClient, or redis.UniversalClient.
 //
 // Example usage:
 //
-//	// Create a key set
+//	client := redis.NewClient(&redis.Options{
+//	    Addr: "localhost:6379",
+//	})
+//	storage := jwtauth.NewRedisStorage(client)
 //
-// rawKey := []byte("your-secret-key-at-least-32-bytes-long!")
-// key, _ := jwk.Import(rawKey)
-// keySet := jwk.NewSet()
-// keySet.AddKey(key)
-//
-// // Create storage (use Redis in production)
-// storage := jwtauth.NewInMemoryStorage()
-//
-// // Create the token store
-// cfg := jwtauth.DefaultConfig()
-// cfg.KeySet = keySet
-// cfg.Storage = storage
-// store := jwtauth.NewTokenStore(cfg)
-//
-// // Use with zerohttp
-//
-//	jwtCfg := zconfig.JWTAuthConfig{
-//	    TokenStore: store,
+//	cfg := jwtauth.Config{
+//	    KeySet:  keySet,
+//	    Storage: storage,
 //	}
-//
-// app.Use(middleware.JWTAuth(jwtCfg))
-type TokenStore struct {
-	config Config
+type RedisStore struct {
+	client redis.UniversalClient
+	prefix string
 }
 
-// NewTokenStore creates a new TokenStore with the given configuration.
-//
-// Required config fields:
-//   - KeySet: A jwk.Set containing at least one key
-//   - Storage: An implementation of the Storage interface
-//
-// Other fields will use sensible defaults if not provided.
-//
-// Panics if KeySet is nil or empty, or if Storage is nil.
-func NewTokenStore(cfg Config) *TokenStore {
-	if cfg.KeySet == nil {
-		panic(errMissingKeySet)
+// NewRedisStore creates a new Redis-based storage.
+// The prefix is used to namespace keys (default: "jwt:")
+func NewRedisStore(client redis.UniversalClient, prefix string) *RedisStore {
+	if prefix == "" {
+		prefix = "jwt:"
 	}
-
-	if cfg.KeySet.Len() == 0 {
-		panic(errNoKeys)
+	return &RedisStore{
+		client: client,
+		prefix: prefix,
 	}
-
-	if cfg.Storage == nil {
-		panic(errMissingStorage)
-	}
-
-	// Apply defaults
-	if cfg.Algorithm.String() == "" {
-		cfg.Algorithm = jwa.HS256()
-	}
-	if cfg.TokenKeyFunc == nil {
-		cfg.TokenKeyFunc = defaultTokenKeyFunc
-	}
-	if cfg.KeySelector == nil {
-		cfg.KeySelector = defaultKeySelector
-	}
-
-	return &TokenStore{config: cfg}
 }
 
-// Validate parses and validates a JWT token, returning the claims as map[string]any.
-//
-// This method implements the jwtauth.Store interface for zerohttp.
-// It performs the following validations:
-//   - Signature verification
-//   - Expiration check (if enabled in config)
-//   - Not-before check (if enabled in config)
-//   - Issuer validation (if configured)
-//   - Audience validation (if configured)
-//
-// The returned claims are normalized to map[string]any for maximum compatibility
-// with the zerohttp middleware.
-func (s *TokenStore) Validate(ctx context.Context, tokenString string) (jwtauth.JWTClaims, error) {
-	// Parse the token with signature verification
-	// We need to use the concrete jwk.Key type for jwt.ParseString
-	jwkKey, err := s.getJWKKey(0)
+// tokenKey generates the Redis key for a token.
+func (s *RedisStore) tokenKey(key string) string {
+	return fmt.Sprintf("%stoken:%s", s.prefix, key)
+}
+
+// sessionKey generates the Redis key for a session.
+func (s *RedisStore) sessionKey(sid string) string {
+	return fmt.Sprintf("%ssession:%s", s.prefix, sid)
+}
+
+// RevokeToken marks a specific token as revoked in Redis.
+// The key is stored with the provided TTL.
+func (s *RedisStore) RevokeToken(ctx context.Context, key string, ttl time.Duration) error {
+	redisKey := s.tokenKey(key)
+	return s.client.Set(ctx, redisKey, "1", ttl).Err()
+}
+
+// RevokeSession marks an entire session as revoked in Redis.
+// The session is stored with the provided TTL.
+func (s *RedisStore) RevokeSession(ctx context.Context, sid string, ttl time.Duration) error {
+	redisKey := s.sessionKey(sid)
+	return s.client.Set(ctx, redisKey, "1", ttl).Err()
+}
+
+// IsTokenRevoked checks if a specific token has been revoked.
+// Returns true if the token exists in Redis (meaning it was revoked).
+func (s *RedisStore) IsTokenRevoked(ctx context.Context, key string) (bool, error) {
+	redisKey := s.tokenKey(key)
+	exists, err := s.client.Exists(ctx, redisKey).Result()
 	if err != nil {
-		return nil, err
+		return false, fmt.Errorf("failed to check token revocation: %w", err)
 	}
+	return exists > 0, nil
+}
 
-	parseOptions := []jwt.ParseOption{
-		jwt.WithKey(s.config.Algorithm, jwkKey),
-	}
-
-	// Add validation options
-	if s.config.ValidateExpiration {
-		parseOptions = append(parseOptions, jwt.WithValidate(true))
-	}
-
-	token, err := jwt.ParseString(tokenString, parseOptions...)
+// IsSessionRevoked checks if a session has been revoked.
+// Returns true if the session exists in Redis (meaning it was revoked).
+func (s *RedisStore) IsSessionRevoked(ctx context.Context, sid string) (bool, error) {
+	redisKey := s.sessionKey(sid)
+	exists, err := s.client.Exists(ctx, redisKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse token: %w", err)
+		return false, fmt.Errorf("failed to check session revocation: %w", err)
 	}
-
-	// Validate issuer if configured
-	if s.config.ValidateIssuer && s.config.Issuer != "" {
-		if iss, ok := token.Issuer(); !ok || iss != s.config.Issuer {
-			return nil, errInvalidIssuer
-		}
-	}
-
-	// Validate audience if configured
-	if s.config.ValidateAudience && s.config.Audience != "" {
-		aud, ok := token.Audience()
-		if !ok {
-			return nil, errInvalidAudience
-		}
-		found := false
-		for _, a := range aud {
-			if a == s.config.Audience {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, errInvalidAudience
-		}
-	}
-
-	// Convert token to map[string]any
-	claims := tokenToMap(token)
-	return claims, nil
+	return exists > 0, nil
 }
 
-// Generate creates a new signed JWT token for the given claims.
-//
-// This method implements the jwtauth.Store interface for zerohttp.
-// It automatically handles:
-//   - Setting the token type claim ("type": "refresh" for refresh tokens)
-//   - Setting the expiration time based on the TTL
-//   - Adding issued-at timestamp
-//   - Adding issuer and audience if configured
-//
-// The claims parameter can be either map[string]any or any type that can be
-// converted to claims (via reflection or by implementing a Claims interface).
-func (s *TokenStore) Generate(ctx context.Context, claims jwtauth.JWTClaims, tokenType jwtauth.TokenType, ttl time.Duration) (string, error) {
-	builder := jwt.NewBuilder()
-
-	// Extract map claims and add to builder
-	claimMap, err := normalizeClaims(claims)
-	if err != nil {
-		return "", fmt.Errorf("failed to normalize claims: %w", err)
-	}
-
-	// Set standard claims from the map
-	for k, v := range claimMap {
-		switch k {
-		case "sub":
-			if s, ok := v.(string); ok {
-				builder.Subject(s)
-			}
-		case "iss":
-			if s, ok := v.(string); ok {
-				builder.Issuer(s)
-			}
-		case "aud":
-			switch aud := v.(type) {
-			case string:
-				builder.Audience([]string{aud})
-			case []string:
-				builder.Audience(aud)
-			case []interface{}:
-				audiences := make([]string, 0, len(aud))
-				for _, a := range aud {
-					if s, ok := a.(string); ok {
-						audiences = append(audiences, s)
-					}
-				}
-				builder.Audience(audiences)
-			}
-		case "iat":
-			switch t := v.(type) {
-			case int64:
-				builder.IssuedAt(time.Unix(t, 0))
-			case float64:
-				builder.IssuedAt(time.Unix(int64(t), 0))
-			case time.Time:
-				builder.IssuedAt(t)
-			}
-		case "nbf":
-			switch t := v.(type) {
-			case int64:
-				builder.NotBefore(time.Unix(t, 0))
-			case float64:
-				builder.NotBefore(time.Unix(int64(t), 0))
-			case time.Time:
-				builder.NotBefore(t)
-			}
-		case "exp":
-			// exp is handled below with TTL
-		case "jti":
-			if s, ok := v.(string); ok {
-				builder.JwtID(s)
-			}
-		default:
-			builder.Claim(k, v)
-		}
-	}
-
-	// Set configured issuer if not already set
-	if s.config.Issuer != "" {
-		if _, ok := claimMap["iss"]; !ok {
-			builder.Issuer(s.config.Issuer)
-		}
-	}
-
-	// Set configured audience if not already set
-	if s.config.Audience != "" {
-		if _, ok := claimMap["aud"]; !ok {
-			builder.Audience([]string{s.config.Audience})
-		}
-	}
-
-	// Set expiration
-	if ttl > 0 {
-		builder.Expiration(time.Now().Add(ttl))
-	}
-
-	// Set issued at if not already set
-	if _, ok := claimMap["iat"]; !ok {
-		builder.IssuedAt(time.Now())
-	}
-
-	// Add token type for refresh tokens
-	if tokenType == jwtauth.RefreshToken {
-		builder.Claim("type", jwtauth.TokenTypeRefresh)
-	}
-
-	// Build the token
-	token, err := builder.Build()
-	if err != nil {
-		return "", fmt.Errorf("failed to build token: %w", err)
-	}
-
-	// Get the signing key
-	jwkKey, err := s.getJWKKey(0)
-	if err != nil {
-		return "", err
-	}
-
-	// Sign the token
-	signed, err := jwt.Sign(token, jwt.WithKey(s.config.Algorithm, jwkKey))
-	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
-	}
-
-	return string(signed), nil
+// Close closes the Redis connection.
+func (s *RedisStore) Close() error {
+	return s.client.Close()
 }
 
-// Revoke invalidates a refresh token by storing its revocation in the configured storage.
-//
-// This method implements the config.TokenStore interface for zerohttp.
-// It revokes:
-//   - The specific token (by sub:exp or jti)
-//   - The entire session (by sid claim, if present)
-//
-// The claims parameter should be the normalized claims map (map[string]any).
-// The storage TTL is set to the remaining time until the token expires.
-func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
-	// Revoke by token key
-	key := s.config.TokenKeyFunc(claims)
-	if key != "" {
-		// Calculate TTL based on expiration
-		ttl := s.calculateTTL(claims)
-		if err := s.config.Storage.RevokeToken(ctx, key, ttl); err != nil {
-			return fmt.Errorf("failed to revoke token: %w", err)
-		}
-	}
-
-	// Revoke entire session if sid claim exists
-	if sid, ok := claims["sid"].(string); ok && sid != "" {
-		ttl := s.calculateTTL(claims)
-		if err := s.config.Storage.RevokeSession(ctx, sid, ttl); err != nil {
-			return fmt.Errorf("failed to revoke session: %w", err)
-		}
-	}
-
-	return nil
+// Client returns the underlying Redis client.
+// This can be used for health checks or other operations.
+func (s *RedisStore) Client() redis.UniversalClient {
+	return s.client
 }
 
-// IsRevoked checks if a refresh token has been revoked.
-//
-// This method implements the config.TokenStore interface for zerohttp.
-// It checks:
-//   - If the specific token is revoked (by sub:exp or jti)
-//   - If the entire session is revoked (by sid claim)
-//
-// Returns true if either the token or its session has been revoked.
-func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool, error) {
-	// Check if session is revoked
-	if sid, ok := claims["sid"].(string); ok && sid != "" {
-		revoked, err := s.config.Storage.IsSessionRevoked(ctx, sid)
-		if err != nil {
-			return false, fmt.Errorf("failed to check session revocation: %w", err)
-		}
-		if revoked {
-			return true, nil
-		}
-	}
-
-	// Check if specific token is revoked
-	key := s.config.TokenKeyFunc(claims)
-	if key != "" {
-		revoked, err := s.config.Storage.IsTokenRevoked(ctx, key)
-		if err != nil {
-			return false, fmt.Errorf("failed to check token revocation: %w", err)
-		}
-		if revoked {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// getJWKKey retrieves the jwk.Key at the specified index.
-func (s *TokenStore) getJWKKey(idx int) (jwk.Key, error) {
-	key, ok := s.config.KeySet.Key(idx)
-	if !ok {
-		return nil, errKeyNotFound
-	}
-	return key, nil
-}
-
-// calculateTTL calculates the remaining time until token expiration.
-func (s *TokenStore) calculateTTL(claims map[string]any) time.Duration {
-	var exp time.Time
-
-	switch v := claims["exp"].(type) {
-	case int64:
-		exp = time.Unix(v, 0)
-	case float64:
-		exp = time.Unix(int64(v), 0)
-	case time.Time:
-		exp = v
-	default:
-		// No expiration set, return 0
-		return 0
-	}
-
-	ttl := time.Until(exp)
-	if ttl < 0 {
-		return 0
-	}
-	return ttl
-}
-
-// tokenToMap converts a jwt.Token to map[string]any.
-func tokenToMap(token jwt.Token) map[string]any {
-	m := make(map[string]any)
-
-	// Standard claims
-	if sub, ok := token.Subject(); ok {
-		m["sub"] = sub
-	}
-	if iss, ok := token.Issuer(); ok {
-		m["iss"] = iss
-	}
-	if aud, ok := token.Audience(); ok {
-		m["aud"] = aud
-	}
-	if exp, ok := token.Expiration(); ok {
-		m["exp"] = exp.Unix()
-	}
-	if iat, ok := token.IssuedAt(); ok {
-		m["iat"] = iat.Unix()
-	}
-	if nbf, ok := token.NotBefore(); ok {
-		m["nbf"] = nbf.Unix()
-	}
-	if jti, ok := token.JwtID(); ok {
-		m["jti"] = jti
-	}
-
-	// Extract common custom claims using Get method
-	// This handles private claims that are not part of the standard JWT claims
-	var sid string
-	if err := token.Get("sid", &sid); err == nil {
-		m["sid"] = sid
-	}
-
-	var scope string
-	if err := token.Get("scope", &scope); err == nil {
-		m["scope"] = scope
-	}
-
-	var typ string
-	if err := token.Get("type", &typ); err == nil {
-		m["type"] = typ
-	}
-
-	return m
-}
-
-// normalizeClaims converts various claim types to map[string]any.
-func normalizeClaims(claims jwtauth.JWTClaims) (map[string]any, error) {
-	if claims == nil {
-		return make(map[string]any), nil
-	}
-
-	switch c := claims.(type) {
-	case map[string]any:
-		return c, nil
-	default:
-		// For other types, we can't easily convert without reflection
-		// Return an error to indicate unsupported type
-		return nil, fmt.Errorf("unsupported claims type: %T", claims)
-	}
+// Ping checks if the Redis connection is healthy.
+func (s *RedisStore) Ping(ctx context.Context) error {
+	return s.client.Ping(ctx).Err()
 }

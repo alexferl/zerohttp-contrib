@@ -12,7 +12,7 @@ import (
 // This provides a high-level configuration for the jwx-based JWT middleware.
 // For most use cases, you only need to provide:
 //   - KeySet: The JWK set containing keys for validation (and optionally signing)
-//   - Storage: The storage implementation for token revocation
+//   - Store: The storage implementation for token revocation
 //
 // Example usage:
 //
@@ -37,7 +37,7 @@ type Config struct {
 	// Storage handles token revocation persistence.
 	// Required. Use NewMemoryStorage() for development/testing,
 	// or implement the Storage interface for production (Redis, PostgreSQL, etc.).
-	Storage Storage
+	Storage Store
 
 	// Algorithm specifies the JWT signing algorithm.
 	// Default: jwa.HS256() (for symmetric keys)
@@ -75,15 +75,22 @@ type Config struct {
 	// Default: true
 	ValidateNotBefore bool
 
-	// TokenKeyFunc generates the storage key for a token.
-	// Default uses "sub:exp" format.
-	// Customize this if you want to use jti or another unique identifier.
+	// TokenKeyFunc generates the storage key for a token from its claims.
+	// Default uses the following precedence:
+	//
+	//  1. "sub:jti" — preferred, JWT ID (RFC 7519 §4.1.7)
+	//  2. "sub:sid" — fallback if jti is absent, session ID claim
+	//  3. "sub:exp" — last resort; collision-prone for tokens issued within the same second
+	//
+	// Override this if your tokens use a different unique identifier scheme.
 	//
 	// Example:
-	//   TokenKeyFunc: func(claims map[string]any) string {
-	//       jti, _ := claims["jti"].(string)
-	//       return jti
-	//   }
+	//
+	//	TokenKeyFunc: func(claims map[string]any) string {
+	//	    jti, _ := claims["jti"].(string)
+	//	    sub, _ := claims["sub"].(string)
+	//	    return sub + ":" + jti
+	//	}
 	TokenKeyFunc func(claims map[string]any) string
 
 	// KeySelector selects the appropriate key from the KeySet for signing/validation.
@@ -91,10 +98,13 @@ type Config struct {
 	// Customize this for multi-key scenarios (e.g., key rotation with kid).
 	//
 	// Example:
-	//   KeySelector: func(keySet jwk.Set, token jwt.Token) (jwk.Key, error) {
-	//       kid, _ := token.Header().KeyID()
-	//       return keySet.LookupKeyID(kid)
-	//   }
+	//	KeySelector: func(keySet jwk.Set, token any) (jwk.Key, error) {
+	//	    t, ok := token.(jwt.Token)
+	//	    if !ok {
+	//	        return nil, errors.New("invalid token type")
+	//	    }
+	//	    return jwk.LookupKeyID(keySet, t.KeyID())
+	//	}
 	KeySelector func(keySet jwk.Set, token any) (jwk.Key, error)
 }
 
@@ -109,12 +119,23 @@ func DefaultConfig() Config {
 	}
 }
 
-// defaultTokenKeyFunc generates a storage key from claims using "sub:exp" format.
+// defaultTokenKeyFunc generates a storage key from JWT claims using
+// "sub:jti", falling back to "sub:sid", then "sub:exp".
 func defaultTokenKeyFunc(claims map[string]any) string {
 	sub, _ := claims["sub"].(string)
+
+	if jti, ok := claims["jti"].(string); ok && jti != "" {
+		return sub + ":" + jti
+	}
+
+	// fallback: jti missing, use sid
+	if sid, ok := claims["sid"].(string); ok && sid != "" {
+		return sub + ":" + sid
+	}
+
+	// last resort: exp (collision-prone but better than panicking)
 	exp, _ := claims["exp"].(int64)
 	if exp == 0 {
-		// Try float64 (JSON numbers are float64 by default)
 		if f, ok := claims["exp"].(float64); ok {
 			exp = int64(f)
 		}
@@ -123,7 +144,7 @@ func defaultTokenKeyFunc(claims map[string]any) string {
 }
 
 // defaultKeySelector returns the first key in the set.
-func defaultKeySelector(keySet jwk.Set, token any) (jwk.Key, error) {
+func defaultKeySelector(keySet jwk.Set, _ any) (jwk.Key, error) {
 	if keySet.Len() == 0 {
 		return nil, errNoKeys
 	}

@@ -3,9 +3,9 @@ module github.com/alexferl/zerohttp-contrib/examples/extensions/webtransport_aut
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.58.0
-	github.com/alexferl/zerohttp-contrib/extensions/autocert v0.1.0
-	github.com/alexferl/zerohttp-contrib/extensions/webtransport v0.1.0
+	github.com/alexferl/zerohttp v0.64.0
+	github.com/alexferl/zerohttp-contrib/extensions/autocert v0.2.0
+	github.com/alexferl/zerohttp-contrib/extensions/webtransport v0.2.0
 	github.com/quic-go/quic-go v0.59.0
 	github.com/quic-go/webtransport-go v0.10.0
 	golang.org/x/crypto v0.49.0

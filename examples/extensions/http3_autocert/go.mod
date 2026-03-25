@@ -3,9 +3,9 @@ module github.com/alexferl/zerohttp-contrib/examples/extensions/http3_autocert
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.58.0
-	github.com/alexferl/zerohttp-contrib/extensions/autocert v0.1.0
-	github.com/alexferl/zerohttp-contrib/extensions/http3 v0.1.0
+	github.com/alexferl/zerohttp v0.64.0
+	github.com/alexferl/zerohttp-contrib/extensions/autocert v0.2.0
+	github.com/alexferl/zerohttp-contrib/extensions/http3 v0.2.0
 	golang.org/x/crypto v0.49.0
 )
 

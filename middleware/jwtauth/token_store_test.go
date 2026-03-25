@@ -15,12 +15,12 @@ import (
 	"github.com/alexferl/zerohttp/middleware/jwtauth"
 )
 
-// createTestStorage creates a miniredis-based storage for testing.
-func createTestStorage(t *testing.T) (*RedisStorage, *miniredis.Miniredis) {
+// createTestStore creates a miniredis-based storage for testing.
+func createTestStore(t *testing.T) (*RedisStore, *miniredis.Miniredis) {
 	t.Helper()
 	s := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: s.Addr()})
-	storage := NewRedisStorage(client, "test:")
+	storage := NewRedisStore(client, "test:")
 	return storage, s
 }
 
@@ -38,7 +38,7 @@ func createTestKeySet(t *testing.T) jwk.Set {
 
 func TestNewTokenStore(t *testing.T) {
 	keySet := createTestKeySet(t)
-	storage, _ := createTestStorage(t)
+	storage, _ := createTestStore(t)
 
 	t.Run("valid configuration", func(t *testing.T) {
 		cfg := Config{
@@ -81,7 +81,7 @@ func TestNewTokenStore(t *testing.T) {
 
 func TestTokenStore_Generate(t *testing.T) {
 	keySet := createTestKeySet(t)
-	storage, _ := createTestStorage(t)
+	storage, _ := createTestStore(t)
 
 	cfg := Config{
 		KeySet:    keySet,
@@ -201,7 +201,7 @@ func TestTokenStore_Generate(t *testing.T) {
 
 func TestTokenStore_Validate(t *testing.T) {
 	keySet := createTestKeySet(t)
-	storage, _ := createTestStorage(t)
+	storage, _ := createTestStore(t)
 
 	cfg := Config{
 		KeySet:    keySet,
@@ -372,7 +372,7 @@ func TestTokenStore_Validate(t *testing.T) {
 
 func TestTokenStore_Revoke(t *testing.T) {
 	keySet := createTestKeySet(t)
-	storage, _ := createTestStorage(t)
+	storage, _ := createTestStore(t)
 
 	cfg := Config{
 		KeySet:    keySet,
@@ -437,27 +437,38 @@ func TestTokenStore_Revoke(t *testing.T) {
 }
 
 func TestDefaultTokenKeyFunc(t *testing.T) {
-	t.Run("generates key from sub and exp", func(t *testing.T) {
+	t.Run("generates key from sub and jti", func(t *testing.T) {
 		claims := map[string]any{
 			"sub": "user123",
-			"exp": int64(1234567890),
+			"jti": "token-id-456",
 		}
 
 		key := defaultTokenKeyFunc(claims)
-		assert.Contains(t, key, "user123")
+		assert.Equal(t, "user123:token-id-456", key)
 	})
 
-	t.Run("handles float64 exp", func(t *testing.T) {
+	t.Run("generates key from sub and sid when jti missing", func(t *testing.T) {
 		claims := map[string]any{
 			"sub": "user123",
-			"exp": float64(1234567890),
+			"sid": "session-abc",
 		}
 
 		key := defaultTokenKeyFunc(claims)
-		assert.Contains(t, key, "user123")
+		assert.Equal(t, "user123:session-abc", key)
 	})
 
-	t.Run("formats key correctly", func(t *testing.T) {
+	t.Run("jti takes priority over sid", func(t *testing.T) {
+		claims := map[string]any{
+			"sub": "user123",
+			"jti": "token-id-456",
+			"sid": "session-abc",
+		}
+
+		key := defaultTokenKeyFunc(claims)
+		assert.Equal(t, "user123:token-id-456", key)
+	})
+
+	t.Run("falls back to exp when jti and sid missing", func(t *testing.T) {
 		claims := map[string]any{
 			"sub": "user123",
 			"exp": int64(1234567890),
@@ -467,13 +478,45 @@ func TestDefaultTokenKeyFunc(t *testing.T) {
 		assert.Equal(t, "user123:1234567890", key)
 	})
 
-	t.Run("handles empty sub", func(t *testing.T) {
+	t.Run("handles float64 exp", func(t *testing.T) {
 		claims := map[string]any{
+			"sub": "user123",
+			"exp": float64(1234567890),
+		}
+
+		key := defaultTokenKeyFunc(claims)
+		assert.Equal(t, "user123:1234567890", key)
+	})
+
+	t.Run("empty jti falls through to sid", func(t *testing.T) {
+		claims := map[string]any{
+			"sub": "user123",
+			"jti": "",
+			"sid": "session-abc",
+		}
+
+		key := defaultTokenKeyFunc(claims)
+		assert.Equal(t, "user123:session-abc", key)
+	})
+
+	t.Run("empty sid falls through to exp", func(t *testing.T) {
+		claims := map[string]any{
+			"sub": "user123",
+			"sid": "",
 			"exp": int64(1234567890),
 		}
 
 		key := defaultTokenKeyFunc(claims)
-		assert.Equal(t, ":1234567890", key)
+		assert.Equal(t, "user123:1234567890", key)
+	})
+
+	t.Run("handles empty sub", func(t *testing.T) {
+		claims := map[string]any{
+			"jti": "token-id-456",
+		}
+
+		key := defaultTokenKeyFunc(claims)
+		assert.Equal(t, ":token-id-456", key)
 	})
 
 	t.Run("handles zero exp", func(t *testing.T) {
@@ -488,7 +531,7 @@ func TestDefaultTokenKeyFunc(t *testing.T) {
 
 func TestCalculateTTL(t *testing.T) {
 	keySet := createTestKeySet(t)
-	storage, _ := createTestStorage(t)
+	storage, _ := createTestStore(t)
 	cfg := Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
@@ -563,8 +606,8 @@ func TestNormalizeClaims(t *testing.T) {
 	})
 }
 
-func TestRedisStorage(t *testing.T) {
-	storage, _ := createTestStorage(t)
+func TestRedisStore(t *testing.T) {
+	storage, _ := createTestStore(t)
 	ctx := context.Background()
 
 	t.Run("revoke and check token", func(t *testing.T) {
@@ -612,15 +655,15 @@ func TestRedisStorage(t *testing.T) {
 	})
 }
 
-func TestRedisStorage_Client(t *testing.T) {
-	storage, _ := createTestStorage(t)
+func TestRedisStore_Client(t *testing.T) {
+	storage, _ := createTestStore(t)
 
 	client := storage.Client()
 	assert.NotNil(t, client)
 }
 
-func TestRedisStorage_Ping(t *testing.T) {
-	storage, _ := createTestStorage(t)
+func TestRedisStore_Ping(t *testing.T) {
+	storage, _ := createTestStore(t)
 	ctx := context.Background()
 
 	err := storage.Ping(ctx)
