@@ -56,4 +56,3 @@ The zerohttp core is intentionally minimal with zero dependencies. This contrib 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
