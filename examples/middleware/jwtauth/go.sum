@@ -1,5 +1,7 @@
 github.com/alexferl/zerohttp v0.58.0 h1:CnvApazqeMM5lBTPLWvbWZTHgwSskP0DbzplwwLLaNs=
 github.com/alexferl/zerohttp v0.58.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.64.0 h1:VI7Zn0pd1FwDiWIZYatAPPpp4B9Yj4Nmm+wEMzinz7k=
+github.com/alexferl/zerohttp v0.64.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 github.com/alicebob/miniredis/v2 v2.37.0 h1:RheObYW32G1aiJIj81XVt78ZHJpHonHLHW7OLIshq68=
 github.com/alicebob/miniredis/v2 v2.37.0/go.mod h1:TcL7YfarKPGDAthEtl5NBeHZfeUQj6OXMm/+iu5cLMM=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

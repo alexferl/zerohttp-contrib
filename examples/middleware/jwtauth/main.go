@@ -48,7 +48,7 @@ func main() {
 	cfg := jwtauth.Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Storage:   jwtauth.NewRedisStorage(redisClient, "jwt"),
+		Storage:   jwtauth.NewRedisStore(redisClient, "jwt"),
 	}
 	tokenStore := jwtauth.NewTokenStore(cfg)
 
