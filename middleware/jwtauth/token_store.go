@@ -86,7 +86,7 @@ func NewTokenStore(cfg Config) *TokenStore {
 		panic(errNoKeys)
 	}
 
-	if cfg.Storage == nil {
+	if cfg.Store == nil {
 		panic(errMissingStorage)
 	}
 
@@ -308,7 +308,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 	if key != "" {
 		// Calculate TTL based on expiration
 		ttl := s.calculateTTL(claims)
-		if err := s.config.Storage.RevokeToken(ctx, key, ttl); err != nil {
+		if err := s.config.Store.RevokeToken(ctx, key, ttl); err != nil {
 			return fmt.Errorf("failed to revoke token: %w", err)
 		}
 	}
@@ -316,7 +316,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 	// Revoke entire session if sid claim exists
 	if sid, ok := claims["sid"].(string); ok && sid != "" {
 		ttl := s.calculateTTL(claims)
-		if err := s.config.Storage.RevokeSession(ctx, sid, ttl); err != nil {
+		if err := s.config.Store.RevokeSession(ctx, sid, ttl); err != nil {
 			return fmt.Errorf("failed to revoke session: %w", err)
 		}
 	}
@@ -335,7 +335,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool, error) {
 	// Check if session is revoked
 	if sid, ok := claims["sid"].(string); ok && sid != "" {
-		revoked, err := s.config.Storage.IsSessionRevoked(ctx, sid)
+		revoked, err := s.config.Store.IsSessionRevoked(ctx, sid)
 		if err != nil {
 			return false, fmt.Errorf("failed to check session revocation: %w", err)
 		}
@@ -347,7 +347,7 @@ func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool
 	// Check if specific token is revoked
 	key := s.config.TokenKeyFunc(claims)
 	if key != "" {
-		revoked, err := s.config.Storage.IsTokenRevoked(ctx, key)
+		revoked, err := s.config.Store.IsTokenRevoked(ctx, key)
 		if err != nil {
 			return false, fmt.Errorf("failed to check token revocation: %w", err)
 		}

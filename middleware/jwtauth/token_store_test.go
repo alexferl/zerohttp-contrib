@@ -42,8 +42,8 @@ func TestNewTokenStore(t *testing.T) {
 
 	t.Run("valid configuration", func(t *testing.T) {
 		cfg := Config{
-			KeySet:  keySet,
-			Storage: storage,
+			KeySet: keySet,
+			Store:  storage,
 		}
 		store := NewTokenStore(cfg)
 		assert.NotNil(t, store)
@@ -51,7 +51,7 @@ func TestNewTokenStore(t *testing.T) {
 
 	t.Run("missing key set panics", func(t *testing.T) {
 		cfg := Config{
-			Storage: storage,
+			Store: storage,
 		}
 		assert.Panics(t, func() {
 			NewTokenStore(cfg)
@@ -61,8 +61,8 @@ func TestNewTokenStore(t *testing.T) {
 	t.Run("empty key set panics", func(t *testing.T) {
 		emptySet := jwk.NewSet()
 		cfg := Config{
-			KeySet:  emptySet,
-			Storage: storage,
+			KeySet: emptySet,
+			Store:  storage,
 		}
 		assert.Panics(t, func() {
 			NewTokenStore(cfg)
@@ -86,7 +86,7 @@ func TestTokenStore_Generate(t *testing.T) {
 	cfg := Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Storage:   storage,
+		Store:     storage,
 		Issuer:    "test-issuer",
 		Audience:  "test-audience",
 	}
@@ -206,7 +206,7 @@ func TestTokenStore_Validate(t *testing.T) {
 	cfg := Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Storage:   storage,
+		Store:     storage,
 	}
 	store := NewTokenStore(cfg)
 
@@ -241,7 +241,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithIssuer := Config{
 			KeySet:         keySet,
 			Algorithm:      jwa.HS256(),
-			Storage:        storage,
+			Store:          storage,
 			Issuer:         "expected-issuer",
 			ValidateIssuer: true,
 		}
@@ -263,7 +263,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithIssuer := Config{
 			KeySet:         keySet,
 			Algorithm:      jwa.HS256(),
-			Storage:        storage,
+			Store:          storage,
 			Issuer:         "expected-issuer",
 			ValidateIssuer: true,
 		}
@@ -285,7 +285,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithAudience := Config{
 			KeySet:           keySet,
 			Algorithm:        jwa.HS256(),
-			Storage:          storage,
+			Store:            storage,
 			Audience:         "expected-audience",
 			ValidateAudience: true,
 		}
@@ -307,7 +307,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithAudience := Config{
 			KeySet:           keySet,
 			Algorithm:        jwa.HS256(),
-			Storage:          storage,
+			Store:            storage,
 			Audience:         "expected-audience",
 			ValidateAudience: true,
 		}
@@ -329,7 +329,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithAudience := Config{
 			KeySet:           keySet,
 			Algorithm:        jwa.HS256(),
-			Storage:          storage,
+			Store:            storage,
 			Audience:         "expected-audience",
 			ValidateAudience: true,
 		}
@@ -351,7 +351,7 @@ func TestTokenStore_Validate(t *testing.T) {
 		cfgWithAudience := Config{
 			KeySet:           keySet,
 			Algorithm:        jwa.HS256(),
-			Storage:          storage,
+			Store:            storage,
 			Audience:         "expected-audience",
 			ValidateAudience: true,
 		}
@@ -377,7 +377,7 @@ func TestTokenStore_Revoke(t *testing.T) {
 	cfg := Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Storage:   storage,
+		Store:     storage,
 	}
 	store := NewTokenStore(cfg)
 
@@ -535,7 +535,7 @@ func TestCalculateTTL(t *testing.T) {
 	cfg := Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Storage:   storage,
+		Store:     storage,
 	}
 	store := NewTokenStore(cfg)
 

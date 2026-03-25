@@ -34,10 +34,10 @@ type Config struct {
 	//   keySet.AddKey(key)
 	KeySet jwk.Set
 
-	// Storage handles token revocation persistence.
+	// Store handles token revocation persistence.
 	// Required. Use NewMemoryStorage() for development/testing,
-	// or implement the Storage interface for production (Redis, PostgreSQL, etc.).
-	Storage Store
+	// or implement the Store interface for production (Redis, PostgreSQL, etc.).
+	Store Store
 
 	// Algorithm specifies the JWT signing algorithm.
 	// Default: jwa.HS256() (for symmetric keys)
