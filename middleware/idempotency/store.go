@@ -19,8 +19,9 @@ import (
 type RedisClient interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd
-	SetNX(ctx context.Context, key string, value any, expiration time.Duration) *redis.BoolCmd
+	SetArgs(ctx context.Context, key string, value any, a redis.SetArgs) *redis.StatusCmd
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
+	Close() error
 }
 
 // RedisStore implements idempotency.Store using Redis for distributed
@@ -124,11 +125,19 @@ func (s *RedisStore) Set(ctx context.Context, key string, record idempotency.Rec
 func (s *RedisStore) Lock(ctx context.Context, key string) (bool, error) {
 	lockKey := s.makeLockKey(key)
 	// Use SET NX to atomically set only if not exists
-	ok, err := s.client.SetNX(ctx, lockKey, "1", s.lockTTL).Result()
+	cmd := s.client.SetArgs(ctx, lockKey, "1", redis.SetArgs{
+		Mode: "NX",
+		TTL:  s.lockTTL,
+	})
+	_, err := cmd.Result()
+	if errors.Is(err, redis.Nil) {
+		// Key already exists - lock not acquired
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
-	return ok, nil
+	return true, nil
 }
 
 // Unlock releases the lock for the given key.
@@ -136,4 +145,10 @@ func (s *RedisStore) Lock(ctx context.Context, key string) (bool, error) {
 func (s *RedisStore) Unlock(ctx context.Context, key string) error {
 	lockKey := s.makeLockKey(key)
 	return s.client.Del(ctx, lockKey).Err()
+}
+
+// Close closes the Redis connection.
+// Returns an error if the close operation fails.
+func (s *RedisStore) Close() error {
+	return s.client.Close()
 }

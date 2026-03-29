@@ -19,6 +19,8 @@ import (
 type RedisClient interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd
+	Del(ctx context.Context, keys ...string) *redis.IntCmd
+	Close() error
 }
 
 // RedisStore implements cache.Store using Redis as the backend.
@@ -103,4 +105,16 @@ func (s *RedisStore) Set(ctx context.Context, key string, record cache.Record, t
 	}
 
 	return s.client.Set(ctx, s.makeKey(key), data, ttl).Err()
+}
+
+// Delete removes a cached response by key from Redis.
+// Returns an error if the operation fails.
+func (s *RedisStore) Delete(ctx context.Context, key string) error {
+	return s.client.Del(ctx, s.makeKey(key)).Err()
+}
+
+// Close closes the Redis connection.
+// Returns an error if the close operation fails.
+func (s *RedisStore) Close() error {
+	return s.client.Close()
 }

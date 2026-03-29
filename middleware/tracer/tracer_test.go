@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/alexferl/zerohttp/trace"
-	"github.com/stretchr/testify/assert"
+	"github.com/alexferl/zerohttp/zhtest"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -21,9 +21,9 @@ func TestNewDefault(t *testing.T) {
 
 		// The exporter is created synchronously but connection happens later
 		// So this should succeed even if the endpoint isn't reachable
-		assert.NoError(t, err)
-		assert.NotNil(t, tracer)
-		assert.NotNil(t, shutdown)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertNotNil(t, tracer)
+		zhtest.AssertNotNil(t, shutdown)
 
 		// Clean up
 		if shutdown != nil {

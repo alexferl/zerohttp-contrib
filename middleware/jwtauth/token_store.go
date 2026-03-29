@@ -76,7 +76,7 @@ type TokenStore struct {
 //
 // Other fields will use sensible defaults if not provided.
 //
-// Panics if KeySet is nil or empty, or if Store is nil.
+// Panic if KeySet is nil or empty, or if Store is nil.
 func NewTokenStore(cfg Config) *TokenStore {
 	if cfg.KeySet == nil {
 		panic(errMissingKeySet)
@@ -357,6 +357,13 @@ func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool
 	}
 
 	return false, nil
+}
+
+// Close closes the token store and releases resources.
+// This method implements the jwtauth.Store interface for zerohttp.
+// It closes the underlying storage.
+func (s *TokenStore) Close() error {
+	return s.config.Store.Close()
 }
 
 // getJWKKey retrieves the jwk.Key at the specified index.

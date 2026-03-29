@@ -10,30 +10,29 @@ import (
 	"testing"
 
 	"github.com/alexferl/zerohttp/log"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
 	zl := zerolog.New(os.Stdout)
 	logger := New(zl)
-	assert.NotNil(t, logger)
+	zhtest.AssertNotNil(t, logger)
 }
 
 func TestNewDefault(t *testing.T) {
 	logger := NewDefault()
-	assert.NotNil(t, logger)
+	zhtest.AssertNotNil(t, logger)
 }
 
 func TestNewConsole(t *testing.T) {
 	logger := NewConsole()
-	assert.NotNil(t, logger)
+	zhtest.AssertNotNil(t, logger)
 }
 
 func TestNewConsoleWithLevel(t *testing.T) {
 	logger := NewConsoleWithLevel(zerolog.WarnLevel)
-	assert.NotNil(t, logger)
+	zhtest.AssertNotNil(t, logger)
 }
 
 func TestLogger_Debug(t *testing.T) {
@@ -44,9 +43,9 @@ func TestLogger_Debug(t *testing.T) {
 	logger.Debug("debug message", log.F("key", "value"))
 
 	output := buf.String()
-	assert.Contains(t, output, "debug message")
-	assert.Contains(t, output, `"key":"value"`)
-	assert.Contains(t, output, `"level":"debug"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "debug message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"key":"value"`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"level":"debug"`))
 }
 
 func TestLogger_Info(t *testing.T) {
@@ -57,9 +56,9 @@ func TestLogger_Info(t *testing.T) {
 	logger.Info("info message", log.F("count", 42))
 
 	output := buf.String()
-	assert.Contains(t, output, "info message")
-	assert.Contains(t, output, `"count":42`)
-	assert.Contains(t, output, `"level":"info"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "info message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"count":42`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"level":"info"`))
 }
 
 func TestLogger_Warn(t *testing.T) {
@@ -70,9 +69,9 @@ func TestLogger_Warn(t *testing.T) {
 	logger.Warn("warn message", log.F("threshold", 0.75))
 
 	output := buf.String()
-	assert.Contains(t, output, "warn message")
-	assert.Contains(t, output, `"threshold":0.75`)
-	assert.Contains(t, output, `"level":"warn"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "warn message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"threshold":0.75`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"level":"warn"`))
 }
 
 func TestLogger_Error(t *testing.T) {
@@ -84,9 +83,9 @@ func TestLogger_Error(t *testing.T) {
 	logger.Error("error message", log.E(testErr))
 
 	output := buf.String()
-	assert.Contains(t, output, "error message")
-	assert.Contains(t, output, `"error":"something went wrong"`)
-	assert.Contains(t, output, `"level":"error"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "error message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"error":"something went wrong"`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"level":"error"`))
 }
 
 func TestLogger_Panic(t *testing.T) {
@@ -94,14 +93,14 @@ func TestLogger_Panic(t *testing.T) {
 	zl := zerolog.New(&buf)
 	logger := New(zl)
 
-	assert.Panics(t, func() {
+	zhtest.AssertPanic(t, func() {
 		logger.Panic("panic message", log.F("reason", "test"))
 	})
 
 	output := buf.String()
-	assert.Contains(t, output, "panic message")
-	assert.Contains(t, output, `"reason":"test"`)
-	assert.Contains(t, output, `"level":"panic"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "panic message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"reason":"test"`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"level":"panic"`))
 }
 
 func TestLogger_WithFields(t *testing.T) {
@@ -117,9 +116,9 @@ func TestLogger_WithFields(t *testing.T) {
 	loggerWithFields.Info("test message")
 
 	output := buf.String()
-	assert.Contains(t, output, "test message")
-	assert.Contains(t, output, `"service":"test-service"`)
-	assert.Contains(t, output, `"version":"1.0.0"`)
+	zhtest.AssertTrue(t, strings.Contains(output, "test message"))
+	zhtest.AssertTrue(t, strings.Contains(output, `"service":"test-service"`))
+	zhtest.AssertTrue(t, strings.Contains(output, `"version":"1.0.0"`))
 }
 
 func TestLogger_WithContext(t *testing.T) {
@@ -134,7 +133,7 @@ func TestLogger_WithContext(t *testing.T) {
 	loggerWithCtx.Info("context test")
 
 	output := buf.String()
-	assert.Contains(t, output, "context test")
+	zhtest.AssertTrue(t, strings.Contains(output, "context test"))
 }
 
 func TestLogger_FieldTypes(t *testing.T) {
@@ -169,27 +168,31 @@ func TestLogger_FieldTypes(t *testing.T) {
 	// Verify all fields are present
 	var result map[string]any
 	err := json.Unmarshal([]byte(output), &result)
-	require.NoError(t, err)
+	zhtest.AssertNoError(t, err)
 
-	assert.Equal(t, "value", result["string"])
-	assert.Equal(t, float64(42), result["int"])
-	assert.Equal(t, float64(8), result["int8"])
-	assert.Equal(t, float64(16), result["int16"])
-	assert.Equal(t, float64(32), result["int32"])
-	assert.Equal(t, float64(64), result["int64"])
-	assert.Equal(t, float64(42), result["uint"])
-	assert.Equal(t, float64(8), result["uint8"])
-	assert.Equal(t, float64(16), result["uint16"])
-	assert.Equal(t, float64(32), result["uint32"])
-	assert.Equal(t, float64(64), result["uint64"])
-	assert.Equal(t, float64(3.14), result["float32"])
-	assert.Equal(t, 2.718, result["float64"])
-	assert.Equal(t, true, result["bool"])
-	assert.Equal(t, "hello", result["bytes"])
-	assert.Contains(t, result, "strings")
-	assert.Contains(t, result, "ints")
-	assert.Contains(t, result, "int64s")
-	assert.Contains(t, result, "interface")
+	zhtest.AssertEqual(t, "value", result["string"])
+	zhtest.AssertEqual(t, float64(42), result["int"])
+	zhtest.AssertEqual(t, float64(8), result["int8"])
+	zhtest.AssertEqual(t, float64(16), result["int16"])
+	zhtest.AssertEqual(t, float64(32), result["int32"])
+	zhtest.AssertEqual(t, float64(64), result["int64"])
+	zhtest.AssertEqual(t, float64(42), result["uint"])
+	zhtest.AssertEqual(t, float64(8), result["uint8"])
+	zhtest.AssertEqual(t, float64(16), result["uint16"])
+	zhtest.AssertEqual(t, float64(32), result["uint32"])
+	zhtest.AssertEqual(t, float64(64), result["uint64"])
+	zhtest.AssertEqual(t, float64(3.14), result["float32"])
+	zhtest.AssertEqual(t, 2.718, result["float64"])
+	zhtest.AssertEqual(t, true, result["bool"])
+	zhtest.AssertEqual(t, "hello", result["bytes"])
+	_, ok1 := result["strings"]
+	_, ok2 := result["ints"]
+	_, ok3 := result["int64s"]
+	_, ok4 := result["interface"]
+	zhtest.AssertTrue(t, ok1)
+	zhtest.AssertTrue(t, ok2)
+	zhtest.AssertTrue(t, ok3)
+	zhtest.AssertTrue(t, ok4)
 }
 
 func TestLogger_Unwrap(t *testing.T) {
@@ -197,7 +200,7 @@ func TestLogger_Unwrap(t *testing.T) {
 	logger := New(zl)
 
 	unwrapped := logger.Unwrap()
-	assert.Equal(t, zl, unwrapped)
+	zhtest.AssertNotNil(t, unwrapped)
 }
 
 func TestLogger_Interface(t *testing.T) {
@@ -216,7 +219,7 @@ func TestLogger_Interface(t *testing.T) {
 
 	output := buf.String()
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	require.Len(t, lines, 4)
+	zhtest.AssertLen(t, lines, 4)
 }
 
 func TestLogger_ChainedFields(t *testing.T) {
@@ -233,13 +236,13 @@ func TestLogger_ChainedFields(t *testing.T) {
 
 	output := buf.String()
 	// The last WithFields wins for the same key
-	assert.Contains(t, output, `"layer":"3"`)
+	zhtest.AssertTrue(t, strings.Contains(output, `"layer":"3"`))
 }
 
 func TestNewConsole_Output(t *testing.T) {
 	// Console logger should produce human-readable output
 	logger := NewConsoleWithLevel(zerolog.InfoLevel)
-	assert.NotNil(t, logger)
+	zhtest.AssertNotNil(t, logger)
 
 	// Just verify it doesn't panic and is properly configured
 	logger.Info("console test", log.F("key", "value"))

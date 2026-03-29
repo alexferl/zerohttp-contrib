@@ -3,9 +3,9 @@ module github.com/alexferl/zerohttp-contrib/examples/adapters/zerolog
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.64.0
+	github.com/alexferl/zerohttp v0.70.0
 	github.com/alexferl/zerohttp-contrib/adapters/zerolog v0.2.0
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 )
 
 require (

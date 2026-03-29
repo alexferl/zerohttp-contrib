@@ -5,20 +5,20 @@ import (
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwk"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+
+	"github.com/alexferl/zerohttp/zhtest"
 )
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
-	assert.Equal(t, jwa.HS256(), cfg.Algorithm)
-	assert.True(t, cfg.ValidateExpiration)
-	assert.True(t, cfg.ValidateNotBefore)
-	assert.NotNil(t, cfg.TokenKeyFunc)
-	assert.NotNil(t, cfg.KeySelector)
-	assert.Nil(t, cfg.KeySet)
-	assert.Nil(t, cfg.Store)
+	zhtest.AssertEqual(t, jwa.HS256(), cfg.Algorithm)
+	zhtest.AssertTrue(t, cfg.ValidateExpiration)
+	zhtest.AssertTrue(t, cfg.ValidateNotBefore)
+	zhtest.AssertNotNil(t, cfg.TokenKeyFunc)
+	zhtest.AssertNotNil(t, cfg.KeySelector)
+	zhtest.AssertNil(t, cfg.KeySet)
+	zhtest.AssertNil(t, cfg.Store)
 }
 
 func TestDefaultTokenKeyFunc(t *testing.T) {
@@ -77,7 +77,7 @@ func TestDefaultTokenKeyFunc(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := defaultTokenKeyFunc(tt.claims)
-			assert.Equal(t, tt.expected, result)
+			zhtest.AssertEqual(t, tt.expected, result)
 		})
 	}
 }
@@ -86,47 +86,47 @@ func TestDefaultKeySelector(t *testing.T) {
 	t.Run("returns first key from set", func(t *testing.T) {
 		rawKey := []byte("test-key-at-least-32-bytes-long!")
 		key, err := jwk.Import(rawKey)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		keySet := jwk.NewSet()
 		err = keySet.AddKey(key)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		result, err := defaultKeySelector(keySet, nil)
-		assert.NoError(t, err)
-		assert.Equal(t, key, result)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertEqual(t, key, result)
 	})
 
 	t.Run("returns error for empty key set", func(t *testing.T) {
 		emptySet := jwk.NewSet()
 
 		result, err := defaultKeySelector(emptySet, nil)
-		assert.Error(t, err)
-		assert.Equal(t, errNoKeys, err)
-		assert.Nil(t, result)
+		zhtest.AssertError(t, err)
+		zhtest.AssertEqual(t, errNoKeys, err)
+		zhtest.AssertNil(t, result)
 	})
 
 	t.Run("returns first key when multiple keys exist", func(t *testing.T) {
 		rawKey1 := []byte("first-key-at-least-32-bytes-long!")
 		key1, err := jwk.Import(rawKey1)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 		err = key1.Set(jwk.KeyIDKey, "key1")
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		rawKey2 := []byte("second-key-at-least-32-bytes-long")
 		key2, err := jwk.Import(rawKey2)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 		err = key2.Set(jwk.KeyIDKey, "key2")
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		keySet := jwk.NewSet()
 		err = keySet.AddKey(key1)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 		err = keySet.AddKey(key2)
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		result, err := defaultKeySelector(keySet, nil)
-		assert.NoError(t, err)
-		assert.Equal(t, key1, result)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertEqual(t, key1, result)
 	})
 }

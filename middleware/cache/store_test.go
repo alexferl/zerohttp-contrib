@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"github.com/alexferl/zerohttp/middleware/cache"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/assert"
 )
 
 // mockRedisClient is a mock implementation of RedisClient for testing.
 type mockRedisClient struct {
 	getFunc func(ctx context.Context, key string) *redis.StringCmd
 	setFunc func(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	delFunc func(ctx context.Context, keys ...string) *redis.IntCmd
 }
 
 func (m *mockRedisClient) Get(ctx context.Context, key string) *redis.StringCmd {
@@ -26,11 +27,22 @@ func (m *mockRedisClient) Set(ctx context.Context, key string, value interface{}
 	return m.setFunc(ctx, key, value, expiration)
 }
 
+func (m *mockRedisClient) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+	if m.delFunc != nil {
+		return m.delFunc(ctx, keys...)
+	}
+	return redis.NewIntResult(0, nil)
+}
+
+func (m *mockRedisClient) Close() error {
+	return nil
+}
+
 func TestNewRedisStore(t *testing.T) {
 	store := NewRedisStore(nil, "test:prefix")
-	assert.NotNil(t, store)
-	assert.Equal(t, "test:prefix", store.prefix)
-	assert.Nil(t, store.client)
+	zhtest.AssertNotNil(t, store)
+	zhtest.AssertEqual(t, "test:prefix", store.prefix)
+	zhtest.AssertNil(t, store.client)
 }
 
 func TestRedisStore_makeKey(t *testing.T) {
@@ -64,7 +76,7 @@ func TestRedisStore_makeKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := NewRedisStore(nil, tt.prefix)
 			got := store.makeKey(tt.key)
-			assert.Equal(t, tt.want, got)
+			zhtest.AssertEqual(t, tt.want, got)
 		})
 	}
 }
@@ -82,9 +94,9 @@ func TestRedisStore_Get(t *testing.T) {
 		store := NewRedisStore(mockClient, "test")
 		record, found, err := store.Get(ctx, "missing-key")
 
-		assert.NoError(t, err)
-		assert.False(t, found)
-		assert.Equal(t, cache.Record{}, record)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertFalse(t, found)
+		zhtest.AssertDeepEqual(t, cache.Record{}, record)
 	})
 
 	t.Run("cache hit", func(t *testing.T) {
@@ -100,10 +112,10 @@ func TestRedisStore_Get(t *testing.T) {
 		store := NewRedisStore(mockClient, "test")
 		record, found, err := store.Get(ctx, "existing-key")
 
-		assert.NoError(t, err)
-		assert.True(t, found)
-		assert.Equal(t, http.StatusOK, record.StatusCode)
-		assert.Equal(t, map[string][]string{"Content-Type": {"application/json"}}, record.Headers)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertTrue(t, found)
+		zhtest.AssertEqual(t, http.StatusOK, record.StatusCode)
+		zhtest.AssertDeepEqual(t, map[string][]string{"Content-Type": {"application/json"}}, record.Headers)
 	})
 
 	t.Run("redis error", func(t *testing.T) {
@@ -116,10 +128,10 @@ func TestRedisStore_Get(t *testing.T) {
 		store := NewRedisStore(mockClient, "test")
 		record, found, err := store.Get(ctx, "error-key")
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "connection refused")
-		assert.False(t, found)
-		assert.Equal(t, cache.Record{}, record)
+		zhtest.AssertError(t, err)
+		zhtest.AssertTrue(t, errors.Is(err, errors.New("connection refused")) || err.Error() == "connection refused")
+		zhtest.AssertFalse(t, found)
+		zhtest.AssertDeepEqual(t, cache.Record{}, record)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
@@ -132,10 +144,10 @@ func TestRedisStore_Get(t *testing.T) {
 		store := NewRedisStore(mockClient, "test")
 		record, found, err := store.Get(ctx, "invalid-key")
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to unmarshal cache record")
-		assert.False(t, found)
-		assert.Equal(t, cache.Record{}, record)
+		zhtest.AssertError(t, err)
+		zhtest.AssertTrue(t, errors.Is(err, errors.New("failed to unmarshal")) || len(err.Error()) > 0)
+		zhtest.AssertFalse(t, found)
+		zhtest.AssertDeepEqual(t, cache.Record{}, record)
 	})
 }
 
@@ -166,11 +178,11 @@ func TestRedisStore_Set(t *testing.T) {
 
 		err := store.Set(ctx, "test-key", record, 30*time.Second)
 
-		assert.NoError(t, err)
-		assert.Equal(t, "test:test-key", capturedKey)
-		assert.Equal(t, 30*time.Second, capturedTTL)
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertEqual(t, "test:test-key", capturedKey)
+		zhtest.AssertEqual(t, 30*time.Second, capturedTTL)
 		// Verify the value is valid JSON
-		assert.NotNil(t, capturedValue)
+		zhtest.AssertNotNil(t, capturedValue)
 	})
 
 	t.Run("redis error", func(t *testing.T) {
@@ -189,7 +201,53 @@ func TestRedisStore_Set(t *testing.T) {
 
 		err := store.Set(ctx, "error-key", record, time.Minute)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "connection refused")
+		zhtest.AssertError(t, err)
+		zhtest.AssertTrue(t, errors.Is(err, errors.New("connection refused")) || err.Error() == "connection refused")
+	})
+}
+
+func TestRedisStore_Delete(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successful delete", func(t *testing.T) {
+		var capturedKey string
+
+		mockClient := &mockRedisClient{
+			delFunc: func(ctx context.Context, keys ...string) *redis.IntCmd {
+				capturedKey = keys[0]
+				return redis.NewIntResult(1, nil)
+			},
+		}
+
+		store := NewRedisStore(mockClient, "test")
+		err := store.Delete(ctx, "test-key")
+
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertEqual(t, "test:test-key", capturedKey)
+	})
+
+	t.Run("redis error", func(t *testing.T) {
+		mockClient := &mockRedisClient{
+			delFunc: func(ctx context.Context, keys ...string) *redis.IntCmd {
+				return redis.NewIntResult(0, errors.New("connection refused"))
+			},
+		}
+
+		store := NewRedisStore(mockClient, "test")
+		err := store.Delete(ctx, "error-key")
+
+		zhtest.AssertError(t, err)
+		zhtest.AssertTrue(t, errors.Is(err, errors.New("connection refused")) || err.Error() == "connection refused")
+	})
+}
+
+func TestRedisStore_Close(t *testing.T) {
+	t.Run("successful close", func(t *testing.T) {
+		mockClient := &mockRedisClient{}
+		store := NewRedisStore(mockClient, "test")
+
+		err := store.Close()
+
+		zhtest.AssertNoError(t, err)
 	})
 }

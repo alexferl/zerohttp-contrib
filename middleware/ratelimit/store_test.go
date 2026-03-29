@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alexferl/zerohttp/middleware/ratelimit"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -75,6 +76,10 @@ func (m *mockRedisClient) Expire(ctx context.Context, key string, expiration tim
 	return cmd
 }
 
+func (m *mockRedisClient) Close() error {
+	return nil
+}
+
 func TestNewRedisStore(t *testing.T) {
 	client := &mockRedisClient{}
 	window := time.Minute
@@ -82,29 +87,12 @@ func TestNewRedisStore(t *testing.T) {
 
 	store := NewRedisStore(client, ratelimit.SlidingWindow, window, rate)
 
-	if store == nil {
-		t.Fatal("expected non-nil store")
-	}
-
-	if store.client != client {
-		t.Error("expected client to be set")
-	}
-
-	if store.window != window {
-		t.Errorf("expected window %v, got %v", window, store.window)
-	}
-
-	if store.rate != rate {
-		t.Errorf("expected rate %d, got %d", rate, store.rate)
-	}
-
-	if store.algorithm != ratelimit.SlidingWindow {
-		t.Errorf("expected algorithm %v, got %v", ratelimit.SlidingWindow, store.algorithm)
-	}
-
-	if store.keyPrefix != "ratelimit:" {
-		t.Errorf("expected keyPrefix 'ratelimit:', got %s", store.keyPrefix)
-	}
+	zhtest.AssertNotNil(t, store)
+	zhtest.AssertEqual(t, client, store.client)
+	zhtest.AssertEqual(t, window, store.window)
+	zhtest.AssertEqual(t, rate, store.rate)
+	zhtest.AssertEqual(t, ratelimit.SlidingWindow, store.algorithm)
+	zhtest.AssertEqual(t, "ratelimit:", store.keyPrefix)
 }
 
 func TestRedisStore_CheckAndRecord_Allowed(t *testing.T) {
@@ -126,13 +114,8 @@ func TestRedisStore_CheckAndRecord_Allowed(t *testing.T) {
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if !allowed {
-		t.Error("expected request to be allowed")
-	}
-
-	if remaining != 9 {
-		t.Errorf("expected remaining 9, got %d", remaining)
-	}
+	zhtest.AssertTrue(t, allowed)
+	zhtest.AssertEqual(t, 9, remaining)
 
 	expectedReset := now.Add(time.Minute)
 	if resetTime.Sub(expectedReset) > time.Second {
@@ -161,17 +144,9 @@ func TestRedisStore_CheckAndRecord_Denied(t *testing.T) {
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if allowed {
-		t.Error("expected request to be denied")
-	}
-
-	if remaining != 0 {
-		t.Errorf("expected remaining 0, got %d", remaining)
-	}
-
-	if resetTime.Before(now) {
-		t.Error("expected reset time in the future")
-	}
+	zhtest.AssertFalse(t, allowed)
+	zhtest.AssertEqual(t, 0, remaining)
+	zhtest.AssertTrue(t, resetTime.After(now))
 }
 
 func TestRedisStore_CheckAndRecord_RedisError(t *testing.T) {
@@ -189,13 +164,8 @@ func TestRedisStore_CheckAndRecord_RedisError(t *testing.T) {
 	// Should fail open (allow request) on Redis error
 	allowed, remaining, _ := store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if !allowed {
-		t.Error("expected request to be allowed on Redis error (fail open)")
-	}
-
-	if remaining != 9 { // rate - 1
-		t.Errorf("expected remaining 9, got %d", remaining)
-	}
+	zhtest.AssertTrue(t, allowed)
+	zhtest.AssertEqual(t, 9, remaining) // rate - 1
 }
 
 func TestRedisStore_CheckAndRecord_ZAddError(t *testing.T) {
@@ -220,17 +190,9 @@ func TestRedisStore_CheckAndRecord_ZAddError(t *testing.T) {
 	// Should fail open on ZAdd error
 	allowed, remaining, _ := store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if !allowed {
-		t.Error("expected request to be allowed on ZAdd error (fail open)")
-	}
-
-	if remaining != 9 {
-		t.Errorf("expected remaining 9, got %d", remaining)
-	}
-
-	if callCount == 0 {
-		t.Error("expected ZAdd to be called")
-	}
+	zhtest.AssertTrue(t, allowed)
+	zhtest.AssertEqual(t, 9, remaining)
+	zhtest.AssertTrue(t, callCount > 0)
 }
 
 func TestRedisStore_KeyPrefix(t *testing.T) {
@@ -255,9 +217,7 @@ func TestRedisStore_KeyPrefix(t *testing.T) {
 	store.CheckAndRecord(context.Background(), "user-123", now)
 
 	expectedKey := "ratelimit:user-123"
-	if capturedKey != expectedKey {
-		t.Errorf("expected key %s, got %s", expectedKey, capturedKey)
-	}
+	zhtest.AssertEqual(t, expectedKey, capturedKey)
 }
 
 func TestRedisStore_WindowCleanup(t *testing.T) {
@@ -266,9 +226,7 @@ func TestRedisStore_WindowCleanup(t *testing.T) {
 		zremrangebyscore: func(ctx context.Context, key string, min, max string) *redis.IntCmd {
 			zremCalled = true
 			// Verify it's removing old entries
-			if min != "0" {
-				t.Errorf("expected min '0', got %s", min)
-			}
+			zhtest.AssertEqual(t, "0", min)
 			cmd := redis.NewIntCmd(ctx, "zremrangebyscore", key, min, max)
 			cmd.SetVal(0)
 			return cmd
@@ -290,9 +248,7 @@ func TestRedisStore_WindowCleanup(t *testing.T) {
 
 	store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if !zremCalled {
-		t.Error("expected ZRemRangeByScore to be called for window cleanup")
-	}
+	zhtest.AssertTrue(t, zremCalled)
 }
 
 func TestRedisStore_Expire(t *testing.T) {
@@ -324,13 +280,8 @@ func TestRedisStore_Expire(t *testing.T) {
 
 	store.CheckAndRecord(context.Background(), "test-key", now)
 
-	if !expireCalled {
-		t.Error("expected Expire to be called")
-	}
-
-	if capturedExpiration != window {
-		t.Errorf("expected expiration %v, got %v", window, capturedExpiration)
-	}
+	zhtest.AssertTrue(t, expireCalled)
+	zhtest.AssertEqual(t, window, capturedExpiration)
 }
 
 func TestRedisStore_ImplementsInterface(t *testing.T) {
@@ -339,6 +290,14 @@ func TestRedisStore_ImplementsInterface(t *testing.T) {
 
 	// Verify RedisStore implements ratelimit.Store
 	var _ ratelimit.Store = store
+}
+
+func TestRedisStore_Close(t *testing.T) {
+	client := &mockRedisClient{}
+	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 100)
+
+	err := store.Close()
+	zhtest.AssertNoError(t, err)
 }
 
 func BenchmarkRedisStore_CheckAndRecord(b *testing.B) {
