@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alexferl/zerohttp/extensions/webtransport"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/quic-go/quic-go/http3"
 )
 
@@ -40,27 +41,15 @@ func TestNew(t *testing.T) {
 
 	s := New(h3Server)
 
-	if s == nil {
-		t.Fatal("expected non-nil Server")
-	}
-
-	if s.Server == nil {
-		t.Fatal("expected embedded webtransport.Server to be set")
-	}
-
-	if s.H3 != h3Server {
-		t.Error("expected H3 server to be the same instance")
-	}
+	zhtest.AssertNotNil(t, s)
+	zhtest.AssertNotNil(t, s.Server)
+	zhtest.AssertEqual(t, h3Server, s.H3)
 }
 
 func TestNew_NilH3Server(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic for nil h3Server")
-		}
-	}()
-
-	New(nil)
+	zhtest.AssertPanic(t, func() {
+		New(nil)
+	})
 }
 
 func TestServer_ImplementsInterfaces(t *testing.T) {
@@ -144,17 +133,10 @@ func TestListenAndServeTLSWithAutocert_NoExistingTLSConfig(t *testing.T) {
 	err := s.ListenAndServeTLSWithAutocert(manager)
 
 	// Check that TLSConfig was set
-	if s.H3.TLSConfig == nil {
-		t.Error("expected TLSConfig to be set")
-	}
-
-	if s.H3.TLSConfig.GetCertificate == nil {
-		t.Error("expected GetCertificate to be set")
-	}
-
-	if len(s.H3.TLSConfig.NextProtos) != 1 || s.H3.TLSConfig.NextProtos[0] != "h3" {
-		t.Errorf("expected NextProtos [h3], got %v", s.H3.TLSConfig.NextProtos)
-	}
+	zhtest.AssertNotNil(t, s.H3.TLSConfig)
+	zhtest.AssertNotNil(t, s.H3.TLSConfig.GetCertificate)
+	zhtest.AssertEqual(t, 1, len(s.H3.TLSConfig.NextProtos))
+	zhtest.AssertEqual(t, "h3", s.H3.TLSConfig.NextProtos[0])
 
 	_ = err
 }
@@ -184,18 +166,12 @@ func TestListenAndServeTLSWithAutocert_WithExistingTLSConfig(t *testing.T) {
 	err := s.ListenAndServeTLSWithAutocert(manager)
 
 	// Verify existing config is preserved
-	if s.H3.TLSConfig.MinVersion != tls.VersionTLS13 {
-		t.Error("expected MinVersion to be preserved")
-	}
-
-	if len(s.H3.TLSConfig.CipherSuites) != 1 || s.H3.TLSConfig.CipherSuites[0] != tls.TLS_AES_256_GCM_SHA384 {
-		t.Error("expected CipherSuites to be preserved")
-	}
+	zhtest.AssertEqual(t, tls.VersionTLS13, s.H3.TLSConfig.MinVersion)
+	zhtest.AssertEqual(t, 1, len(s.H3.TLSConfig.CipherSuites))
+	zhtest.AssertEqual(t, tls.TLS_AES_256_GCM_SHA384, s.H3.TLSConfig.CipherSuites[0])
 
 	// Verify autocert settings were NOT applied (user's config takes precedence)
-	if s.H3.TLSConfig.GetCertificate != nil {
-		t.Error("expected GetCertificate to NOT be set when TLSConfig already exists")
-	}
+	zhtest.AssertNil(t, s.H3.TLSConfig.GetCertificate)
 
 	_ = err
 }
@@ -208,9 +184,7 @@ func TestServer_EmbeddedServerAccess(t *testing.T) {
 	s := New(h3Server)
 
 	// Test that we can access the H3 server
-	if s.H3.Addr != ":8443" {
-		t.Errorf("expected addr :8443, got %s", s.H3.Addr)
-	}
+	zhtest.AssertEqual(t, ":8443", s.H3.Addr)
 }
 
 func TestServer_H3ServerReuse(t *testing.T) {
@@ -227,7 +201,5 @@ func TestServer_H3ServerReuse(t *testing.T) {
 
 	// Modify the original h3Server, changes should be visible
 	h3Server.Addr = ":443"
-	if s.H3.Addr != ":443" {
-		t.Error("expected changes to original h3Server to be visible")
-	}
+	zhtest.AssertEqual(t, ":443", s.H3.Addr)
 }

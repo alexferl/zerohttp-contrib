@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/alexferl/zerohttp/zhtest"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -42,22 +43,12 @@ func TestNew(t *testing.T) {
 
 	m := New(cache, hostnames)
 
-	if m == nil {
-		t.Fatal("expected non-nil manager")
-	}
-
-	if m.Manager == nil {
-		t.Error("expected embedded Manager to be set")
-	}
-
-	if len(m.hostnames) != len(hostnames) {
-		t.Errorf("expected %d hostnames, got %d", len(hostnames), len(m.hostnames))
-	}
+	zhtest.AssertNotNil(t, m)
+	zhtest.AssertNotNil(t, m.Manager)
+	zhtest.AssertEqual(t, len(hostnames), len(m.hostnames))
 
 	for i, h := range hostnames {
-		if m.hostnames[i] != h {
-			t.Errorf("expected hostname[%d] = %s, got %s", i, h, m.hostnames[i])
-		}
+		zhtest.AssertEqual(t, h, m.hostnames[i])
 	}
 }
 
@@ -65,13 +56,8 @@ func TestNew_EmptyHostnames(t *testing.T) {
 	cache := newMockCache()
 	m := New(cache, []string{})
 
-	if m == nil {
-		t.Fatal("expected non-nil manager")
-	}
-
-	if len(m.hostnames) != 0 {
-		t.Errorf("expected 0 hostnames, got %d", len(m.hostnames))
-	}
+	zhtest.AssertNotNil(t, m)
+	zhtest.AssertEqual(t, 0, len(m.hostnames))
 }
 
 func TestHostnames(t *testing.T) {
@@ -81,14 +67,10 @@ func TestHostnames(t *testing.T) {
 	m := New(cache, hostnames)
 	got := m.Hostnames()
 
-	if len(got) != len(hostnames) {
-		t.Errorf("expected %d hostnames, got %d", len(hostnames), len(got))
-	}
+	zhtest.AssertEqual(t, len(hostnames), len(got))
 
 	for i, h := range hostnames {
-		if got[i] != h {
-			t.Errorf("expected hostname[%d] = %s, got %s", i, h, got[i])
-		}
+		zhtest.AssertEqual(t, h, got[i])
 	}
 }
 
@@ -103,9 +85,7 @@ func TestHostnames_ReturnsCopy(t *testing.T) {
 	got[0] = "modified.com"
 
 	// Original should be unchanged
-	if m.hostnames[0] != "example.com" {
-		t.Error("Hostnames() should return a copy, not the internal slice")
-	}
+	zhtest.AssertEqual(t, "example.com", m.hostnames[0])
 }
 
 func TestHTTPHandler(t *testing.T) {
@@ -122,9 +102,7 @@ func TestHTTPHandler(t *testing.T) {
 	handler := m.HTTPHandler(fallback)
 
 	// Test that handler is returned
-	if handler == nil {
-		t.Fatal("expected non-nil handler")
-	}
+	zhtest.AssertNotNil(t, handler)
 
 	// Test request (not an ACME challenge, should hit fallback)
 	req := httptest.NewRequest(http.MethodGet, "/not-acme", nil)
@@ -132,9 +110,7 @@ func TestHTTPHandler(t *testing.T) {
 
 	handler.ServeHTTP(rec, req)
 
-	if !fallbackCalled {
-		t.Error("expected fallback handler to be called")
-	}
+	zhtest.AssertTrue(t, fallbackCalled)
 }
 
 func TestGetCertificate(t *testing.T) {
@@ -149,9 +125,7 @@ func TestGetCertificate(t *testing.T) {
 
 	// Expect this to fail since the hostname is not whitelisted
 	_, err := m.GetCertificate(hello)
-	if err == nil {
-		t.Error("expected error for non-whitelisted hostname")
-	}
+	zhtest.AssertError(t, err)
 }
 
 func TestManager_ImplementsInterface(t *testing.T) {

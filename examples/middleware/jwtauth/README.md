@@ -147,16 +147,16 @@ Expected response:
 docker exec -it redis redis-cli
 
 # List revoked tokens
-KEYS jwt:*
+KEYS myapp:jwt:*
 
 # View a specific key
-GET jwt:token:<key>
+GET myapp:jwt:token:<key>
 
 # Check TTL
-TTL jwt:token:<key>
+TTL myapp:jwt:token:<key>
 
 # List revoked sessions
-KEYS jwt:session:*
+KEYS myapp:jwt:session:*
 ```
 
 ## Cleanup

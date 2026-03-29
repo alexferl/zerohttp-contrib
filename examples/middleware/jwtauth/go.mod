@@ -3,8 +3,9 @@ module github.com/alexferl/zerohttp-contrib/examples/middleware/jwtauth
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.70.0
-	github.com/alexferl/zerohttp-contrib/middleware/jwtauth v0.4.0
+	github.com/alexferl/zerohttp v0.71.0
+	github.com/alexferl/zerohttp-contrib/middleware/jwtauth v0.5.0
+	github.com/alexferl/zerohttp-contrib/storage v0.1.0
 	github.com/lestrrat-go/jwx/v3 v3.0.13
 	github.com/redis/go-redis/v9 v9.18.0
 )

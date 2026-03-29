@@ -5,6 +5,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwk"
+
+	"github.com/alexferl/zerohttp/storage"
 )
 
 // Config configures the JWT authentication middleware.
@@ -34,10 +36,11 @@ type Config struct {
 	//   keySet.AddKey(key)
 	KeySet jwk.Set
 
-	// Store handles token revocation persistence.
-	// Required. Use NewMemoryStorage() for development/testing,
-	// or implement the Store interface for production (Redis, PostgreSQL, etc.).
-	Store Store
+	// Storage is the storage backend for token revocation.
+	// Required. Use storage.NewMemoryStorage() for development/testing,
+	// or use storage.NewRedisStorage() for production (Redis, PostgreSQL, etc.).
+	// The storage is wrapped internally by StorageAdapter.
+	Storage storage.Storage
 
 	// Algorithm specifies the JWT signing algorithm.
 	// Default: jwa.HS256() (for symmetric keys)

@@ -9,6 +9,7 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/jwtauth"
+	zstorage "github.com/alexferl/zerohttp-contrib/storage"
 	zjwtauth "github.com/alexferl/zerohttp/middleware/jwtauth"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwk"
@@ -45,10 +46,14 @@ func main() {
 	}
 
 	// Create TokenStore using lestrrat-go/jwx with Redis storage
+	redisStorage := zstorage.NewRedisStorage(redisClient, zstorage.RedisStorageConfig{
+		KeyPrefix: "myapp:",
+	})
+
 	cfg := jwtauth.Config{
 		KeySet:    keySet,
 		Algorithm: jwa.HS256(),
-		Store:     jwtauth.NewRedisStore(redisClient, "jwt"),
+		Storage:   redisStorage,
 	}
 	tokenStore := jwtauth.NewTokenStore(cfg)
 

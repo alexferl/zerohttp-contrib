@@ -118,7 +118,8 @@ func TestRedisStore_CheckAndRecord_Allowed(t *testing.T) {
 	zhtest.AssertEqual(t, 9, remaining)
 
 	expectedReset := now.Add(time.Minute)
-	if resetTime.Sub(expectedReset) > time.Second {
+	timeDiff := resetTime.Sub(expectedReset)
+	if timeDiff > time.Second || timeDiff < -time.Second {
 		t.Errorf("expected reset time around %v, got %v", expectedReset, resetTime)
 	}
 }
