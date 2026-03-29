@@ -18,7 +18,7 @@ func TestDefaultConfig(t *testing.T) {
 	zhtest.AssertNotNil(t, cfg.TokenKeyFunc)
 	zhtest.AssertNotNil(t, cfg.KeySelector)
 	zhtest.AssertNil(t, cfg.KeySet)
-	zhtest.AssertNil(t, cfg.Store)
+	zhtest.AssertNil(t, cfg.Storage)
 }
 
 func TestDefaultTokenKeyFunc(t *testing.T) {

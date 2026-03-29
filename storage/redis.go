@@ -73,7 +73,7 @@ func NewRedisStorage(client Client, cfg ...RedisStorageConfig) *RedisStorage {
 // makeKey creates a Redis key with optional prefix.
 func (s *RedisStorage) makeKey(key string) string {
 	if s.keyPrefix != "" {
-		return s.keyPrefix + ":" + key
+		return s.keyPrefix + key
 	}
 	return key
 }

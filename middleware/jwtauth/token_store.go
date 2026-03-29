@@ -23,7 +23,7 @@ var (
 	// errMissingKeySet is returned when KeySet is not provided.
 	errMissingKeySet = errors.New("key set is required")
 
-	// errMissingStorage is returned when Store is not provided.
+	// errMissingStorage is returned when Storage is not provided.
 	errMissingStorage = errors.New("storage is required")
 
 	// errInvalidIssuer is returned when the issuer claim doesn't match.
@@ -49,13 +49,15 @@ var (
 // keySet.AddKey(key)
 //
 // // Create storage (use Redis in production)
-// storage := jwtauth.NewInMemoryStorage()
+// storage := storage.NewMemoryStorage()
 //
 // // Create the token store
-// cfg := jwtauth.DefaultConfig()
-// cfg.KeySet = keySet
-// cfg.Storage = storage
-// store := jwtauth.NewTokenStore(cfg)
+//
+//	cfg := jwtauth.Config{
+//		    KeySet:  keySet,
+//		    Storage: storage,
+//		}
+//		store := jwtauth.NewTokenStore(cfg)
 //
 // // Use with zerohttp
 //
@@ -65,18 +67,19 @@ var (
 //
 // app.Use(middleware.JWTAuth(jwtCfg))
 type TokenStore struct {
-	config Config
+	config  Config
+	adapter *StorageAdapter
 }
 
 // NewTokenStore creates a new TokenStore with the given configuration.
 //
 // Required config fields:
 //   - KeySet: A jwk.Set containing at least one key
-//   - Store: An implementation of the Store interface
+//   - Storage: A storage.Storage implementation for token revocation
 //
 // Other fields will use sensible defaults if not provided.
 //
-// Panic if KeySet is nil or empty, or if Store is nil.
+// Panic if KeySet is nil or empty, or if Storage is nil.
 func NewTokenStore(cfg Config) *TokenStore {
 	if cfg.KeySet == nil {
 		panic(errMissingKeySet)
@@ -86,7 +89,7 @@ func NewTokenStore(cfg Config) *TokenStore {
 		panic(errNoKeys)
 	}
 
-	if cfg.Store == nil {
+	if cfg.Storage == nil {
 		panic(errMissingStorage)
 	}
 
@@ -101,7 +104,10 @@ func NewTokenStore(cfg Config) *TokenStore {
 		cfg.KeySelector = defaultKeySelector
 	}
 
-	return &TokenStore{config: cfg}
+	return &TokenStore{
+		config:  cfg,
+		adapter: NewStorageAdapter(cfg.Storage, ""),
+	}
 }
 
 // Validate parses and validates a JWT token, returning the claims as map[string]any.
@@ -308,7 +314,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 	if key != "" {
 		// Calculate TTL based on expiration
 		ttl := s.calculateTTL(claims)
-		if err := s.config.Store.RevokeToken(ctx, key, ttl); err != nil {
+		if err := s.adapter.RevokeToken(ctx, key, ttl); err != nil {
 			return fmt.Errorf("failed to revoke token: %w", err)
 		}
 	}
@@ -316,7 +322,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 	// Revoke entire session if sid claim exists
 	if sid, ok := claims["sid"].(string); ok && sid != "" {
 		ttl := s.calculateTTL(claims)
-		if err := s.config.Store.RevokeSession(ctx, sid, ttl); err != nil {
+		if err := s.adapter.RevokeSession(ctx, sid, ttl); err != nil {
 			return fmt.Errorf("failed to revoke session: %w", err)
 		}
 	}
@@ -335,7 +341,7 @@ func (s *TokenStore) Revoke(ctx context.Context, claims map[string]any) error {
 func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool, error) {
 	// Check if session is revoked
 	if sid, ok := claims["sid"].(string); ok && sid != "" {
-		revoked, err := s.config.Store.IsSessionRevoked(ctx, sid)
+		revoked, err := s.adapter.IsSessionRevoked(ctx, sid)
 		if err != nil {
 			return false, fmt.Errorf("failed to check session revocation: %w", err)
 		}
@@ -347,7 +353,7 @@ func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool
 	// Check if specific token is revoked
 	key := s.config.TokenKeyFunc(claims)
 	if key != "" {
-		revoked, err := s.config.Store.IsTokenRevoked(ctx, key)
+		revoked, err := s.adapter.IsTokenRevoked(ctx, key)
 		if err != nil {
 			return false, fmt.Errorf("failed to check token revocation: %w", err)
 		}
@@ -363,7 +369,7 @@ func (s *TokenStore) IsRevoked(ctx context.Context, claims map[string]any) (bool
 // This method implements the jwtauth.Store interface for zerohttp.
 // It closes the underlying storage.
 func (s *TokenStore) Close() error {
-	return s.config.Store.Close()
+	return s.adapter.Close()
 }
 
 // getJWKKey retrieves the jwk.Key at the specified index.
