@@ -13,11 +13,64 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-func TestNewDefault(t *testing.T) {
-	t.Run("creates tracer with valid endpoint", func(t *testing.T) {
+func TestNewHTTPDefault(t *testing.T) {
+	t.Run("creates tracer with valid endpoint (insecure)", func(t *testing.T) {
 		// Use a local endpoint that won't actually be called during this test
 		ctx := context.Background()
-		tracer, shutdown, err := NewDefault(ctx, "test-service", "localhost:4318")
+		tracer, shutdown, err := NewHTTPDefault(ctx, "test-service", "localhost:4318", true)
+
+		// The exporter is created synchronously but connection happens later
+		// So this should succeed even if the endpoint isn't reachable
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertNotNil(t, tracer)
+		zhtest.AssertNotNil(t, shutdown)
+
+		// Clean up
+		if shutdown != nil {
+			shutdown()
+		}
+	})
+
+	t.Run("creates tracer with valid endpoint (secure)", func(t *testing.T) {
+		// Use a local endpoint that won't actually be called during this test
+		ctx := context.Background()
+		tracer, shutdown, err := NewHTTPDefault(ctx, "test-service", "localhost:4318", false)
+
+		// The exporter is created synchronously but connection happens later
+		// So this should succeed even if the endpoint isn't reachable
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertNotNil(t, tracer)
+		zhtest.AssertNotNil(t, shutdown)
+
+		// Clean up
+		if shutdown != nil {
+			shutdown()
+		}
+	})
+}
+
+func TestNewGRPCDefault(t *testing.T) {
+	t.Run("creates tracer with valid endpoint (insecure)", func(t *testing.T) {
+		// Use a local endpoint that won't actually be called during this test
+		ctx := context.Background()
+		tracer, shutdown, err := NewGRPCDefault(ctx, "test-service", "localhost:4317", true)
+
+		// The exporter is created synchronously but connection happens later
+		// So this should succeed even if the endpoint isn't reachable
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertNotNil(t, tracer)
+		zhtest.AssertNotNil(t, shutdown)
+
+		// Clean up
+		if shutdown != nil {
+			shutdown()
+		}
+	})
+
+	t.Run("creates tracer with valid endpoint (secure)", func(t *testing.T) {
+		// Use a local endpoint that won't actually be called during this test
+		ctx := context.Background()
+		tracer, shutdown, err := NewGRPCDefault(ctx, "test-service", "localhost:4317", false)
 
 		// The exporter is created synchronously but connection happens later
 		// So this should succeed even if the endpoint isn't reachable

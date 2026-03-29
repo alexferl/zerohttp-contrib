@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -25,14 +26,50 @@ func NewOTelTracer(tracer otelTrace.Tracer) *OTelTracer {
 	return &OTelTracer{tracer: tracer}
 }
 
-// NewDefault creates a new OTelTracer with default OTLP HTTP exporter setup.
+// NewHTTPDefault creates a new OTelTracer with default OTLP HTTP exporter setup.
 // It configures a tracer provider with the given service name and endpoint.
 // Returns the tracer, a shutdown function to flush and close the provider, and any error.
-func NewDefault(ctx context.Context, serviceName, endpoint string) (*OTelTracer, func(), error) {
-	exporter, err := otlptracehttp.New(ctx,
+func NewHTTPDefault(ctx context.Context, serviceName, endpoint string, insecure bool) (*OTelTracer, func(), error) {
+	opts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(endpoint),
-		otlptracehttp.WithInsecure(),
+	}
+	if insecure {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+	exporter, err := otlptracehttp.New(ctx, opts...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(serviceName),
+		)),
 	)
+
+	otel.SetTracerProvider(provider)
+
+	tracer := provider.Tracer("zerohttp")
+	shutdown := func() {
+		_ = provider.Shutdown(ctx)
+	}
+
+	return NewOTelTracer(tracer), shutdown, nil
+}
+
+// NewGRPCDefault creates a new OTelTracer with default OTLP gRPC exporter setup.
+// It configures a tracer provider with the given service name and endpoint.
+// Returns the tracer, a shutdown function to flush and close the provider, and any error.
+func NewGRPCDefault(ctx context.Context, serviceName, endpoint string, insecure bool) (*OTelTracer, func(), error) {
+	opts := []otlptracegrpc.Option{
+		otlptracegrpc.WithEndpoint(endpoint),
+	}
+	if insecure {
+		opts = append(opts, otlptracegrpc.WithInsecure())
+	}
+	exporter, err := otlptracegrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
