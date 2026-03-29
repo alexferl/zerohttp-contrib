@@ -1,7 +1,5 @@
-github.com/alexferl/zerohttp v0.70.0 h1:UgZET+F7t5WqoymHabuuZd48NUyWYwYE/zuv59gSmi0=
-github.com/alexferl/zerohttp v0.70.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
-github.com/alexferl/zerohttp v0.71.0 h1:3YX1/hURdXByWNDPOQC/LZ6DguDDAf2LXENJRpdyFKM=
-github.com/alexferl/zerohttp v0.71.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.72.0 h1:2qPokehVd/Sc7rLVoa2fM7Lc/NbiVRUnq3tSQAzJDzE=
+github.com/alexferl/zerohttp v0.72.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 golang.org/x/crypto v0.49.0 h1:+Ng2ULVvLHnJ/ZFEq4KdcDd/cfjrrjjNSXNzxg0Y4U4=
 golang.org/x/crypto v0.49.0/go.mod h1:ErX4dUh2UM+CFYiXZRTcMpEcN8b/1gxEuv3nODoYtCA=
 golang.org/x/net v0.52.0 h1:He/TN1l0e4mmR3QqHMT2Xab3Aj3L9qjbhRm78/6jrW0=

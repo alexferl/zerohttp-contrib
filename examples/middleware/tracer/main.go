@@ -14,7 +14,7 @@ func main() {
 	ctx := context.Background()
 
 	// Setup tracer with default OTLP HTTP exporter
-	tracerImpl, shutdown, err := tracer.NewDefault(ctx, "zerohttp-example", "localhost:4318")
+	tracerImpl, shutdown, err := tracer.NewHTTPDefault(ctx, "zerohttp-example", "localhost:4318", true)
 	if err != nil {
 		log.Fatalf("Failed to create tracer: %v", err)
 	}

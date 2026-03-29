@@ -1,7 +1,5 @@
-github.com/alexferl/zerohttp v0.70.0 h1:UgZET+F7t5WqoymHabuuZd48NUyWYwYE/zuv59gSmi0=
-github.com/alexferl/zerohttp v0.70.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
-github.com/alexferl/zerohttp v0.71.0 h1:3YX1/hURdXByWNDPOQC/LZ6DguDDAf2LXENJRpdyFKM=
-github.com/alexferl/zerohttp v0.71.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.72.0 h1:2qPokehVd/Sc7rLVoa2fM7Lc/NbiVRUnq3tSQAzJDzE=
+github.com/alexferl/zerohttp v0.72.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 github.com/alexferl/zerohttp-contrib/storage v0.1.0 h1:2zebryoXKbm9CB46LhgfjOr3PeMq7KLqqv3odY5Ce08=
 github.com/alexferl/zerohttp-contrib/storage v0.1.0/go.mod h1:FdfcGPRIjIadqAro2ryx3NsbWhuzSMCWI70wJV3z6iI=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

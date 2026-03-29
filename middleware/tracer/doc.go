@@ -6,7 +6,7 @@
 // Features:
 //   - OpenTelemetry trace context propagation
 //   - Automatic span creation for incoming requests
-//   - OTLP HTTP exporter support
+//   - OTLP HTTP and gRPC exporter support
 //   - Configurable sampling and span attributes
 //
 // Installation:

@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/examples/extensions/http3
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.71.0
+	github.com/alexferl/zerohttp v0.72.0
 	github.com/alexferl/zerohttp-contrib/extensions/http3 v0.2.0
 )
 

@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/middleware/jwtauth
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.71.0
+	github.com/alexferl/zerohttp v0.72.0
 	github.com/lestrrat-go/jwx/v3 v3.0.13
 )
 
