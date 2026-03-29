@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	zwebsocket "github.com/alexferl/zerohttp/extensions/websocket"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/gorilla/websocket"
 )
 
@@ -35,16 +36,10 @@ func TestNewUpgrader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			u := NewUpgrader(tt.upgrader)
 
-			if u == nil {
-				t.Fatal("expected non-nil Upgrader")
-			}
-
-			if u.upgrader == nil {
-				t.Error("expected internal upgrader to be set")
-			}
-
-			if tt.wantCheck && u.upgrader.CheckOrigin == nil {
-				t.Error("expected CheckOrigin to be set")
+			zhtest.AssertNotNil(t, u)
+			zhtest.AssertNotNil(t, u.upgrader)
+			if tt.wantCheck {
+				zhtest.AssertNotNil(t, u.upgrader.CheckOrigin)
 			}
 		})
 	}
@@ -59,10 +54,7 @@ func TestUpgrader_Upgrade(t *testing.T) {
 	// Create test server
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := u.Upgrade(w, r)
-		if err != nil {
-			t.Errorf("upgrade failed: %v", err)
-			return
-		}
+		zhtest.AssertNoError(t, err)
 		defer func() { _ = conn.Close() }()
 
 		// Echo back
@@ -77,26 +69,18 @@ func TestUpgrader_Upgrade(t *testing.T) {
 	// Connect with WebSocket client
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
-	}
+	zhtest.AssertNoError(t, err)
 	defer func() { _ = ws.Close() }()
 
 	// Send message
 	testMsg := []byte("hello")
-	if err := ws.WriteMessage(websocket.TextMessage, testMsg); err != nil {
-		t.Fatalf("write failed: %v", err)
-	}
+	err = ws.WriteMessage(websocket.TextMessage, testMsg)
+	zhtest.AssertNoError(t, err)
 
 	// Read response
 	_, resp, err := ws.ReadMessage()
-	if err != nil {
-		t.Fatalf("read failed: %v", err)
-	}
-
-	if string(resp) != string(testMsg) {
-		t.Errorf("expected %s, got %s", testMsg, resp)
-	}
+	zhtest.AssertNoError(t, err)
+	zhtest.AssertEqual(t, string(testMsg), string(resp))
 }
 
 func TestUpgrader_Upgrade_ImplementsInterface(t *testing.T) {
@@ -114,12 +98,8 @@ func TestUpgrader_Upgrade_Error(t *testing.T) {
 
 	// Create test server that expects upgrade to fail
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := u.Upgrade(w, r)
-		if err == nil {
-			t.Error("expected upgrade to fail due to rejected origin")
-			_ = conn.Close()
-			return
-		}
+		_, err := u.Upgrade(w, r)
+		zhtest.AssertError(t, err)
 		// Error is expected, return 400
 		w.WriteHeader(http.StatusBadRequest)
 	}))
@@ -127,11 +107,8 @@ func TestUpgrader_Upgrade_Error(t *testing.T) {
 
 	// Try to connect with WebSocket client - should fail
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
-	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err == nil {
-		_ = ws.Close()
-		t.Fatal("expected dial to fail due to rejected origin")
-	}
+	_, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	zhtest.AssertError(t, err)
 }
 
 func TestConn_ReadWrite(t *testing.T) {
@@ -142,10 +119,7 @@ func TestConn_ReadWrite(t *testing.T) {
 	// Create test server
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gorillaConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			t.Errorf("upgrade failed: %v", err)
-			return
-		}
+		zhtest.AssertNoError(t, err)
 
 		conn := &Conn{conn: gorillaConn}
 		defer func() { _ = conn.Close() }()
@@ -162,25 +136,17 @@ func TestConn_ReadWrite(t *testing.T) {
 	// Connect
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
-	}
+	zhtest.AssertNoError(t, err)
 	defer func() { _ = ws.Close() }()
 
 	// Test message
 	testMsg := []byte("test message")
-	if err := ws.WriteMessage(websocket.TextMessage, testMsg); err != nil {
-		t.Fatalf("write failed: %v", err)
-	}
+	err = ws.WriteMessage(websocket.TextMessage, testMsg)
+	zhtest.AssertNoError(t, err)
 
 	_, resp, err := ws.ReadMessage()
-	if err != nil {
-		t.Fatalf("read failed: %v", err)
-	}
-
-	if string(resp) != string(testMsg) {
-		t.Errorf("expected %s, got %s", testMsg, resp)
-	}
+	zhtest.AssertNoError(t, err)
+	zhtest.AssertEqual(t, string(testMsg), string(resp))
 }
 
 func TestConn_RemoteAddr(t *testing.T) {
@@ -193,10 +159,7 @@ func TestConn_RemoteAddr(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		gorillaConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			t.Errorf("upgrade failed: %v", err)
-			return
-		}
+		zhtest.AssertNoError(t, err)
 
 		conn := &Conn{conn: gorillaConn}
 		defer func() { _ = conn.Close() }()
@@ -209,15 +172,11 @@ func TestConn_RemoteAddr(t *testing.T) {
 	wg.Add(1)
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
-	}
+	zhtest.AssertNoError(t, err)
 	defer func() { _ = ws.Close() }()
 
 	wg.Wait()
-	if remoteAddr == "" {
-		t.Error("expected RemoteAddr to be set")
-	}
+	zhtest.AssertNotEmpty(t, remoteAddr)
 }
 
 func TestConn_ImplementsInterface(t *testing.T) {
@@ -235,10 +194,7 @@ func TestConn_Close(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		gorillaConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			t.Errorf("upgrade failed: %v", err)
-			return
-		}
+		zhtest.AssertNoError(t, err)
 
 		conn := &Conn{conn: gorillaConn}
 		err = conn.Close()
@@ -252,13 +208,9 @@ func TestConn_Close(t *testing.T) {
 	wg.Add(1)
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
-	}
+	zhtest.AssertNoError(t, err)
 	_ = ws.Close()
 
 	wg.Wait()
-	if !closeCalled {
-		t.Error("expected Close to succeed")
-	}
+	zhtest.AssertTrue(t, closeCalled)
 }

@@ -41,12 +41,8 @@ func TestNewOTelTracer(t *testing.T) {
 	otelTracer := provider.Tracer("test")
 	tracer := NewOTelTracer(otelTracer)
 
-	if tracer == nil {
-		t.Fatal("expected tracer to not be nil")
-	}
-	if tracer.tracer == nil {
-		t.Fatal("expected wrapped tracer to not be nil")
-	}
+	zhtest.AssertNotNil(t, tracer)
+	zhtest.AssertNotNil(t, tracer.tracer)
 }
 
 func TestOTelTracer_Start(t *testing.T) {
@@ -61,20 +57,13 @@ func TestOTelTracer_Start(t *testing.T) {
 	ctx := context.Background()
 	_, span := tracer.Start(ctx, "test-span")
 
-	if span == nil {
-		t.Fatal("expected span to not be nil")
-	}
+	zhtest.AssertNotNil(t, span)
 
 	span.End()
 
 	spans := exporter.GetSpans()
-	if len(spans) != 1 {
-		t.Fatalf("expected 1 span, got %d", len(spans))
-	}
-
-	if spans[0].Name != "test-span" {
-		t.Errorf("expected span name 'test-span', got %s", spans[0].Name)
-	}
+	zhtest.AssertEqual(t, 1, len(spans))
+	zhtest.AssertEqual(t, "test-span", spans[0].Name)
 }
 
 func TestOTelSpan_End(t *testing.T) {
@@ -91,9 +80,7 @@ func TestOTelSpan_End(t *testing.T) {
 	span.End()
 
 	spans := exporter.GetSpans()
-	if len(spans) != 1 {
-		t.Fatalf("expected 1 span, got %d", len(spans))
-	}
+	zhtest.AssertEqual(t, 1, len(spans))
 }
 
 func TestOTelSpan_SetStatus(t *testing.T) {
@@ -139,13 +126,8 @@ func TestOTelSpan_SetStatus(t *testing.T) {
 			span.End()
 
 			spans := exporter.GetSpans()
-			if len(spans) != 1 {
-				t.Fatalf("expected 1 span, got %d", len(spans))
-			}
-
-			if spans[0].Status.Code != tt.expected {
-				t.Errorf("expected status code %v, got %v", tt.expected, spans[0].Status.Code)
-			}
+			zhtest.AssertEqual(t, 1, len(spans))
+			zhtest.AssertEqual(t, tt.expected, spans[0].Status.Code)
 		})
 	}
 }
@@ -167,18 +149,11 @@ func TestOTelSpan_RecordError(t *testing.T) {
 	span.End()
 
 	spans := exporter.GetSpans()
-	if len(spans) != 1 {
-		t.Fatalf("expected 1 span, got %d", len(spans))
-	}
+	zhtest.AssertEqual(t, 1, len(spans))
 
 	s := spans[0]
-	if len(s.Events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(s.Events))
-	}
-
-	if s.Events[0].Name != "exception" {
-		t.Errorf("expected event name 'exception', got %s", s.Events[0].Name)
-	}
+	zhtest.AssertEqual(t, 1, len(s.Events))
+	zhtest.AssertEqual(t, "exception", s.Events[0].Name)
 }
 
 func TestOTelSpan_SetAttributes(t *testing.T) {
@@ -203,9 +178,7 @@ func TestOTelSpan_SetAttributes(t *testing.T) {
 	span.End()
 
 	spans := exporter.GetSpans()
-	if len(spans) != 1 {
-		t.Fatalf("expected 1 span, got %d", len(spans))
-	}
+	zhtest.AssertEqual(t, 1, len(spans))
 
 	attrs := spans[0].Attributes
 	expectedAttrs := map[string]attribute.Value{
@@ -221,15 +194,11 @@ func TestOTelSpan_SetAttributes(t *testing.T) {
 		for _, attr := range attrs {
 			if string(attr.Key) == key {
 				found = true
-				if attr.Value != expected {
-					t.Errorf("expected %s to be %v, got %v", key, expected, attr.Value)
-				}
+				zhtest.AssertEqual(t, expected, attr.Value)
 				break
 			}
 		}
-		if !found {
-			t.Errorf("expected attribute %s not found", key)
-		}
+		zhtest.AssertTrue(t, found)
 	}
 }
 
@@ -274,12 +243,8 @@ func TestToOtelAttribute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := toOtelAttribute(tt.attr)
-			if result.Key != tt.expected.Key {
-				t.Errorf("expected key %s, got %s", tt.expected.Key, result.Key)
-			}
-			if result.Value != tt.expected.Value {
-				t.Errorf("expected value %v, got %v", tt.expected.Value, result.Value)
-			}
+			zhtest.AssertEqual(t, tt.expected.Key, result.Key)
+			zhtest.AssertEqual(t, tt.expected.Value, result.Value)
 		})
 	}
 }
@@ -315,9 +280,7 @@ func TestToOtelCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := toOtelCode(tt.code)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			zhtest.AssertEqual(t, tt.expected, result)
 		})
 	}
 }

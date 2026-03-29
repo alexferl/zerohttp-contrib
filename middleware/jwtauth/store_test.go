@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alexferl/zerohttp/storage"
+	"github.com/alexferl/zerohttp/zhtest"
 )
 
 // memoryStorage is a simple in-memory implementation of storage.Storage for testing.
@@ -41,21 +42,15 @@ func TestNewStorageAdapter(t *testing.T) {
 		store := newMemoryStorage()
 		adapter := NewStorageAdapter(store, "custom:")
 
-		if adapter == nil {
-			t.Fatal("expected adapter to not be nil")
-		}
-		if adapter.prefix != "custom:" {
-			t.Errorf("expected prefix to be 'custom:', got %s", adapter.prefix)
-		}
+		zhtest.AssertNotNil(t, adapter)
+		zhtest.AssertEqual(t, "custom:", adapter.prefix)
 	})
 
 	t.Run("with empty prefix uses default", func(t *testing.T) {
 		store := newMemoryStorage()
 		adapter := NewStorageAdapter(store, "")
 
-		if adapter.prefix != "jwt" {
-			t.Errorf("expected prefix to be 'jwt', got %s", adapter.prefix)
-		}
+		zhtest.AssertEqual(t, "jwt", adapter.prefix)
 	})
 }
 
@@ -86,9 +81,7 @@ func TestStorageAdapter_tokenKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			adapter := NewStorageAdapter(store, tt.prefix)
 			result := adapter.tokenKey(tt.key)
-			if result != tt.expected {
-				t.Errorf("expected %s, got %s", tt.expected, result)
-			}
+			zhtest.AssertEqual(t, tt.expected, result)
 		})
 	}
 }
@@ -120,9 +113,7 @@ func TestStorageAdapter_sessionKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			adapter := NewStorageAdapter(store, tt.prefix)
 			result := adapter.sessionKey(tt.sid)
-			if result != tt.expected {
-				t.Errorf("expected %s, got %s", tt.expected, result)
-			}
+			zhtest.AssertEqual(t, tt.expected, result)
 		})
 	}
 }
@@ -134,57 +125,35 @@ func TestStorageAdapter(t *testing.T) {
 
 	t.Run("revoke and check token", func(t *testing.T) {
 		err := adapter.RevokeToken(ctx, "token-123", 15*time.Minute)
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		zhtest.AssertNoError(t, err)
 
 		revoked, err := adapter.IsTokenRevoked(ctx, "token-123")
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if !revoked {
-			t.Error("expected token to be revoked")
-		}
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertTrue(t, revoked)
 
 		// Non-revoked token
 		revoked, err = adapter.IsTokenRevoked(ctx, "token-456")
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if revoked {
-			t.Error("expected token to not be revoked")
-		}
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertFalse(t, revoked)
 	})
 
 	t.Run("revoke and check session", func(t *testing.T) {
 		err := adapter.RevokeSession(ctx, "session-abc", 7*24*time.Hour)
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		zhtest.AssertNoError(t, err)
 
 		revoked, err := adapter.IsSessionRevoked(ctx, "session-abc")
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if !revoked {
-			t.Error("expected session to be revoked")
-		}
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertTrue(t, revoked)
 
 		// Non-revoked session
 		revoked, err = adapter.IsSessionRevoked(ctx, "session-def")
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if revoked {
-			t.Error("expected session to not be revoked")
-		}
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertFalse(t, revoked)
 	})
 
 	t.Run("close adapter", func(t *testing.T) {
 		err := adapter.Close()
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		zhtest.AssertNoError(t, err)
 	})
 }
 
@@ -195,9 +164,7 @@ func TestStorageAdapter_IsTokenRevoked_Error(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := adapter.IsTokenRevoked(ctx, "token-123")
-	if err == nil {
-		t.Error("expected error, got nil")
-	}
+	zhtest.AssertError(t, err)
 }
 
 func TestStorageAdapter_IsSessionRevoked_Error(t *testing.T) {
@@ -207,9 +174,7 @@ func TestStorageAdapter_IsSessionRevoked_Error(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := adapter.IsSessionRevoked(ctx, "session-abc")
-	if err == nil {
-		t.Error("expected error, got nil")
-	}
+	zhtest.AssertError(t, err)
 }
 
 // errorStorage is a storage that always returns an error (for testing error handling).

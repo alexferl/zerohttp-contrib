@@ -87,11 +87,11 @@ func TestNewRedisStorage(t *testing.T) {
 
 	t.Run("with all options", func(t *testing.T) {
 		s := NewRedisStorage(client, RedisStorageConfig{
-			KeyPrefix: "myapp",
+			KeyPrefix: "myapp:",
 			LockTTL:   1 * time.Minute,
 		})
 		zhtest.AssertNotNil(t, s)
-		zhtest.AssertEqual(t, "myapp", s.keyPrefix)
+		zhtest.AssertEqual(t, "myapp:", s.keyPrefix)
 		zhtest.AssertEqual(t, 1*time.Minute, s.lockTTL)
 	})
 }
@@ -157,7 +157,7 @@ func TestRedisStorage_Get(t *testing.T) {
 				return cmd
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_, _, _ = s.Get(ctx, "mykey")
 		zhtest.AssertEqual(t, "myapp:mykey", capturedKey)
@@ -204,7 +204,7 @@ func TestRedisStorage_Set(t *testing.T) {
 				return cmd
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_ = s.Set(ctx, "mykey", []byte("hello"), 5*time.Minute)
 		zhtest.AssertEqual(t, "myapp:mykey", capturedKey)
@@ -250,7 +250,7 @@ func TestRedisStorage_Delete(t *testing.T) {
 				return redis.NewIntCmd(ctx, "DEL", keys)
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_ = s.Delete(ctx, "mykey")
 		zhtest.AssertLen(t, capturedKeys, 1)
@@ -299,7 +299,7 @@ func TestRedisStorage_Lock(t *testing.T) {
 				return redis.NewStatusCmd(ctx, "SET", key, value)
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_, _ = s.Lock(ctx, "mykey", 30*time.Second)
 		zhtest.AssertEqual(t, "myapp:mykey:lock", capturedKey)
@@ -331,7 +331,7 @@ func TestRedisStorage_Unlock(t *testing.T) {
 				return redis.NewIntCmd(ctx, "DEL", keys)
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_ = s.Unlock(ctx, "mykey")
 		zhtest.AssertLen(t, capturedKeys, 1)
@@ -395,7 +395,7 @@ func TestRedisStorage_TTL(t *testing.T) {
 				return redis.NewDurationCmd(ctx, time.Second, "TTL", key)
 			},
 		}
-		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp"})
+		s := NewRedisStorage(client, RedisStorageConfig{KeyPrefix: "myapp:"})
 
 		_, _ = s.TTL(ctx, "mykey")
 		zhtest.AssertEqual(t, "myapp:mykey", capturedKey)
@@ -453,7 +453,7 @@ func TestRedisStorage_makeKey(t *testing.T) {
 	})
 
 	t.Run("with prefix", func(t *testing.T) {
-		s := NewRedisStorage(&mockRedisClient{}, RedisStorageConfig{KeyPrefix: "app"})
+		s := NewRedisStorage(&mockRedisClient{}, RedisStorageConfig{KeyPrefix: "app:"})
 		key := s.makeKey("mykey")
 		zhtest.AssertEqual(t, "app:mykey", key)
 	})
@@ -467,7 +467,7 @@ func TestRedisStorage_makeLockKey(t *testing.T) {
 	})
 
 	t.Run("with prefix", func(t *testing.T) {
-		s := NewRedisStorage(&mockRedisClient{}, RedisStorageConfig{KeyPrefix: "app"})
+		s := NewRedisStorage(&mockRedisClient{}, RedisStorageConfig{KeyPrefix: "app:"})
 		key := s.makeLockKey("mykey")
 		zhtest.AssertEqual(t, "app:mykey:lock", key)
 	})

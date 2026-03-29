@@ -87,11 +87,13 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 ### Refresh tokens (revokes old session)
 
 ```bash
-1) "myapp::jwt:session:alice_1774812500071702000"
-2) "jwt:token:d71jkvfmvc5kt4094bb0:QjxHQvzf9NcJ8JaYk4oPdugiAC8sTRaxeUO9XO_3XUs"
-3) "jwt:session:4B3Wbkk2hs5d0BBDRN95dLUI3FULiNNN50b1wDz8X0A"
-4) "rate_limit:transport"
-5) "myapp::jwt:token:alice:alice_1774812500071702000"
+NEW_TOKENS=$(curl -s -X POST http://localhost:8080/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}")
+NEW_ACCESS_TOKEN=$(echo $NEW_TOKENS | jq -r '.access_token')
+NEW_REFRESH_TOKEN=$(echo $NEW_TOKENS | jq -r '.refresh_token')
+echo "New access token: $NEW_ACCESS_TOKEN"
+echo "New refresh token: $NEW_REFRESH_TOKEN"
 ```
 
 ### Try old token after refresh (fails - session revoked)
@@ -145,16 +147,16 @@ Expected response:
 docker exec -it redis redis-cli
 
 # List revoked tokens
-KEYS jwt:*
+KEYS myapp:jwt:*
 
 # View a specific key
-GET jwt:token:<key>
+GET myapp:jwt:token:<key>
 
 # Check TTL
-TTL jwt:token:<key>
+TTL myapp:jwt:token:<key>
 
 # List revoked sessions
-KEYS jwt:session:*
+KEYS myapp:jwt:session:*
 ```
 
 ## Cleanup

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alexferl/zerohttp/extensions/http3"
+	"github.com/alexferl/zerohttp/zhtest"
 )
 
 // mockAutocertManager implements config.AutocertManager for testing
@@ -38,33 +39,17 @@ func TestNew(t *testing.T) {
 
 	s := New(":8443", handler)
 
-	if s == nil {
-		t.Fatal("expected non-nil Server")
-	}
-
-	if s.Server == nil {
-		t.Fatal("expected embedded http3lib.Server to be set")
-	}
-
-	if s.Addr != ":8443" {
-		t.Errorf("expected addr :8443, got %s", s.Addr)
-	}
-
-	if s.Handler == nil {
-		t.Error("expected handler to be set")
-	}
+	zhtest.AssertNotNil(t, s)
+	zhtest.AssertNotNil(t, s.Server)
+	zhtest.AssertEqual(t, ":8443", s.Addr)
+	zhtest.AssertNotNil(t, s.Handler)
 }
 
 func TestNew_NilHandler(t *testing.T) {
 	s := New(":8443", nil)
 
-	if s == nil {
-		t.Fatal("expected non-nil Server")
-	}
-
-	if s.Handler != nil {
-		t.Error("expected nil handler")
-	}
+	zhtest.AssertNotNil(t, s)
+	zhtest.AssertNil(t, s.Handler)
 }
 
 func TestListenAndServeTLS(t *testing.T) {
@@ -136,17 +121,10 @@ func TestListenAndServeTLSWithAutocert_NoExistingTLSConfig(t *testing.T) {
 	// Expected to error since we're closing immediately
 
 	// Check that TLSConfig was set
-	if s.TLSConfig == nil {
-		t.Error("expected TLSConfig to be set")
-	}
-
-	if s.TLSConfig.GetCertificate == nil {
-		t.Error("expected GetCertificate to be set")
-	}
-
-	if len(s.TLSConfig.NextProtos) != 1 || s.TLSConfig.NextProtos[0] != "h3" {
-		t.Errorf("expected NextProtos [h3], got %v", s.TLSConfig.NextProtos)
-	}
+	zhtest.AssertNotNil(t, s.TLSConfig)
+	zhtest.AssertNotNil(t, s.TLSConfig.GetCertificate)
+	zhtest.AssertEqual(t, 1, len(s.TLSConfig.NextProtos))
+	zhtest.AssertEqual(t, "h3", s.TLSConfig.NextProtos[0])
 
 	_ = err
 }
@@ -174,18 +152,12 @@ func TestListenAndServeTLSWithAutocert_WithExistingTLSConfig(t *testing.T) {
 	err := s.ListenAndServeTLSWithAutocert(manager)
 
 	// Verify existing config is preserved
-	if s.TLSConfig.MinVersion != tls.VersionTLS13 {
-		t.Error("expected MinVersion to be preserved")
-	}
-
-	if len(s.TLSConfig.CipherSuites) != 1 || s.TLSConfig.CipherSuites[0] != tls.TLS_AES_256_GCM_SHA384 {
-		t.Error("expected CipherSuites to be preserved")
-	}
+	zhtest.AssertEqual(t, tls.VersionTLS13, s.TLSConfig.MinVersion)
+	zhtest.AssertEqual(t, 1, len(s.TLSConfig.CipherSuites))
+	zhtest.AssertEqual(t, tls.TLS_AES_256_GCM_SHA384, s.TLSConfig.CipherSuites[0])
 
 	// Verify autocert settings were NOT applied (user's config takes precedence)
-	if s.TLSConfig.GetCertificate != nil {
-		t.Error("expected GetCertificate to NOT be set when TLSConfig already exists")
-	}
+	zhtest.AssertNil(t, s.TLSConfig.GetCertificate)
 
 	_ = err
 }
@@ -198,21 +170,11 @@ func TestNewWithAutocert(t *testing.T) {
 
 	s := NewWithAutocert(":443", handler, manager)
 
-	if s == nil {
-		t.Fatal("expected non-nil Server")
-	}
-
-	if s.TLSConfig == nil {
-		t.Fatal("expected TLSConfig to be set")
-	}
-
-	if s.TLSConfig.GetCertificate == nil {
-		t.Error("expected GetCertificate to be set")
-	}
-
-	if len(s.TLSConfig.NextProtos) != 1 || s.TLSConfig.NextProtos[0] != "h3" {
-		t.Errorf("expected NextProtos [h3], got %v", s.TLSConfig.NextProtos)
-	}
+	zhtest.AssertNotNil(t, s)
+	zhtest.AssertNotNil(t, s.TLSConfig)
+	zhtest.AssertNotNil(t, s.TLSConfig.GetCertificate)
+	zhtest.AssertEqual(t, 1, len(s.TLSConfig.NextProtos))
+	zhtest.AssertEqual(t, "h3", s.TLSConfig.NextProtos[0])
 }
 
 func TestNewWithAutocert_PreservesExistingTLSConfig(t *testing.T) {
@@ -237,9 +199,7 @@ func TestNewWithAutocert_PreservesExistingTLSConfig(t *testing.T) {
 
 	err := s.ListenAndServeTLSWithAutocert(manager)
 
-	if s.TLSConfig.MinVersion != tls.VersionTLS13 {
-		t.Error("expected existing TLSConfig to be preserved")
-	}
+	zhtest.AssertEqual(t, tls.VersionTLS13, s.TLSConfig.MinVersion)
 
 	_ = err
 }
@@ -249,13 +209,9 @@ func TestServer_EmbeddedServerAccess(t *testing.T) {
 	s := New(":8443", handler)
 
 	// Test that we can access embedded http3.Server fields
-	if s.Addr != ":8443" {
-		t.Errorf("expected addr :8443, got %s", s.Addr)
-	}
+	zhtest.AssertEqual(t, ":8443", s.Addr)
 
 	// Modify embedded server
 	s.Addr = ":443"
-	if s.Addr != ":443" {
-		t.Error("expected to be able to modify embedded server")
-	}
+	zhtest.AssertEqual(t, ":443", s.Addr)
 }
