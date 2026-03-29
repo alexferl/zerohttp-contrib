@@ -16,9 +16,8 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp/log"
+	"github.com/alexferl/zerohttp/zhtest"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewContext(t *testing.T) {
@@ -32,10 +31,10 @@ func TestNewContext(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		ctx := NewContext(op, req, rec)
-		require.NotNil(t, ctx)
+		zhtest.AssertNotNil(t, ctx)
 
-		assert.Equal(t, op, ctx.Operation())
-		assert.Equal(t, http.MethodGet, ctx.Method())
+		zhtest.AssertEqual(t, op, ctx.Operation())
+		zhtest.AssertEqual(t, http.MethodGet, ctx.Method())
 	})
 }
 
@@ -43,7 +42,7 @@ func TestZerohttpContext_Operation(t *testing.T) {
 	op := &huma.Operation{Method: http.MethodPost, Path: "/api"}
 	ctx := &zerohttpContext{op: op}
 
-	assert.Equal(t, op, ctx.Operation())
+	zhtest.AssertEqual(t, op, ctx.Operation())
 }
 
 func TestZerohttpContext_Context(t *testing.T) {
@@ -53,21 +52,21 @@ func TestZerohttpContext_Context(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(baseCtx)
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, baseCtx, ctx.Context())
+	zhtest.AssertEqual(t, baseCtx, ctx.Context())
 }
 
 func TestZerohttpContext_Method(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, http.MethodPost, ctx.Method())
+	zhtest.AssertEqual(t, http.MethodPost, ctx.Method())
 }
 
 func TestZerohttpContext_Host(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/path", nil)
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, "example.com", ctx.Host())
+	zhtest.AssertEqual(t, "example.com", ctx.Host())
 }
 
 func TestZerohttpContext_RemoteAddr(t *testing.T) {
@@ -75,7 +74,7 @@ func TestZerohttpContext_RemoteAddr(t *testing.T) {
 	req.RemoteAddr = "192.168.1.1:1234"
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, "192.168.1.1:1234", ctx.RemoteAddr())
+	zhtest.AssertEqual(t, "192.168.1.1:1234", ctx.RemoteAddr())
 }
 
 func TestZerohttpContext_URL(t *testing.T) {
@@ -83,8 +82,8 @@ func TestZerohttpContext_URL(t *testing.T) {
 	ctx := &zerohttpContext{r: req}
 
 	url := ctx.URL()
-	assert.Equal(t, "/path", url.Path)
-	assert.Equal(t, "key=value", url.RawQuery)
+	zhtest.AssertEqual(t, "/path", url.Path)
+	zhtest.AssertEqual(t, "key=value", url.RawQuery)
 }
 
 func TestZerohttpContext_Param(t *testing.T) {
@@ -93,7 +92,7 @@ func TestZerohttpContext_Param(t *testing.T) {
 		req.SetPathValue("id", "simple")
 		ctx := &zerohttpContext{r: req}
 
-		assert.Equal(t, "simple", ctx.Param("id"))
+		zhtest.AssertEqual(t, "simple", ctx.Param("id"))
 	})
 
 	t.Run("param with escaping", func(t *testing.T) {
@@ -102,7 +101,7 @@ func TestZerohttpContext_Param(t *testing.T) {
 		req.SetPathValue("id", "hello world")
 		ctx := &zerohttpContext{r: req}
 
-		assert.Equal(t, "hello world", ctx.Param("id"))
+		zhtest.AssertEqual(t, "hello world", ctx.Param("id"))
 	})
 
 	t.Run("param with invalid escape returns original", func(t *testing.T) {
@@ -111,7 +110,7 @@ func TestZerohttpContext_Param(t *testing.T) {
 		req.SetPathValue("id", "invalid%ZZ")
 		ctx := &zerohttpContext{r: req}
 
-		assert.Equal(t, "invalid%ZZ", ctx.Param("id"))
+		zhtest.AssertEqual(t, "invalid%ZZ", ctx.Param("id"))
 	})
 }
 
@@ -119,9 +118,9 @@ func TestZerohttpContext_Query(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/?foo=bar&baz=qux", nil)
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, "bar", ctx.Query("foo"))
-	assert.Equal(t, "qux", ctx.Query("baz"))
-	assert.Equal(t, "", ctx.Query("missing"))
+	zhtest.AssertEqual(t, "bar", ctx.Query("foo"))
+	zhtest.AssertEqual(t, "qux", ctx.Query("baz"))
+	zhtest.AssertEqual(t, "", ctx.Query("missing"))
 }
 
 func TestZerohttpContext_Header(t *testing.T) {
@@ -129,8 +128,8 @@ func TestZerohttpContext_Header(t *testing.T) {
 	req.Header.Set("X-Custom", "value")
 	ctx := &zerohttpContext{r: req}
 
-	assert.Equal(t, "value", ctx.Header("X-Custom"))
-	assert.Equal(t, "", ctx.Header("Missing"))
+	zhtest.AssertEqual(t, "value", ctx.Header("X-Custom"))
+	zhtest.AssertEqual(t, "", ctx.Header("Missing"))
 }
 
 func TestZerohttpContext_EachHeader(t *testing.T) {
@@ -145,9 +144,11 @@ func TestZerohttpContext_EachHeader(t *testing.T) {
 		headers[name] = append(headers[name], value)
 	})
 
-	assert.Contains(t, headers, "X-First")
-	assert.Contains(t, headers, "X-Second")
-	assert.Len(t, headers["X-First"], 2)
+	_, ok1 := headers["X-First"]
+	_, ok2 := headers["X-Second"]
+	zhtest.AssertTrue(t, ok1)
+	zhtest.AssertTrue(t, ok2)
+	zhtest.AssertLen(t, headers["X-First"], 2)
 }
 
 func TestZerohttpContext_BodyReader(t *testing.T) {
@@ -156,11 +157,11 @@ func TestZerohttpContext_BodyReader(t *testing.T) {
 	ctx := &zerohttpContext{r: req}
 
 	reader := ctx.BodyReader()
-	require.NotNil(t, reader)
+	zhtest.AssertNotNil(t, reader)
 
 	content, err := io.ReadAll(reader)
-	require.NoError(t, err)
-	assert.Equal(t, "test body", string(content))
+	zhtest.AssertNoError(t, err)
+	zhtest.AssertEqual(t, "test body", string(content))
 }
 
 func TestZerohttpContext_GetMultipartForm(t *testing.T) {
@@ -168,20 +169,20 @@ func TestZerohttpContext_GetMultipartForm(t *testing.T) {
 		var buf bytes.Buffer
 		writer := multipart.NewWriter(&buf)
 		part, err := writer.CreateFormField("field")
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 		_, err = part.Write([]byte("value"))
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 		err = writer.Close()
-		require.NoError(t, err)
+		zhtest.AssertNoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		ctx := &zerohttpContext{r: req}
 
 		form, err := ctx.GetMultipartForm()
-		require.NoError(t, err)
-		assert.NotNil(t, form)
-		assert.Equal(t, "value", form.Value["field"][0])
+		zhtest.AssertNoError(t, err)
+		zhtest.AssertNotNil(t, form)
+		zhtest.AssertEqual(t, "value", form.Value["field"][0])
 	})
 }
 
@@ -191,14 +192,14 @@ func TestZerohttpContext_SetStatus(t *testing.T) {
 
 	ctx.SetStatus(http.StatusCreated)
 
-	assert.Equal(t, http.StatusCreated, ctx.Status())
-	assert.Equal(t, http.StatusCreated, rec.Code)
+	zhtest.AssertEqual(t, http.StatusCreated, ctx.Status())
+	zhtest.AssertEqual(t, http.StatusCreated, rec.Code)
 }
 
 func TestZerohttpContext_Status(t *testing.T) {
 	ctx := &zerohttpContext{status: http.StatusAccepted}
 
-	assert.Equal(t, http.StatusAccepted, ctx.Status())
+	zhtest.AssertEqual(t, http.StatusAccepted, ctx.Status())
 }
 
 func TestZerohttpContext_AppendHeader(t *testing.T) {
@@ -208,7 +209,7 @@ func TestZerohttpContext_AppendHeader(t *testing.T) {
 	ctx.AppendHeader("X-Custom", "value1")
 	ctx.AppendHeader("X-Custom", "value2")
 
-	assert.Equal(t, []string{"value1", "value2"}, rec.Header()["X-Custom"])
+	zhtest.AssertDeepEqual(t, []string{"value1", "value2"}, rec.Header()["X-Custom"])
 }
 
 func TestZerohttpContext_SetHeader(t *testing.T) {
@@ -218,7 +219,7 @@ func TestZerohttpContext_SetHeader(t *testing.T) {
 	ctx.SetHeader("X-Custom", "value1")
 	ctx.SetHeader("X-Custom", "value2")
 
-	assert.Equal(t, "value2", rec.Header().Get("X-Custom"))
+	zhtest.AssertEqual(t, "value2", rec.Header().Get("X-Custom"))
 }
 
 func TestZerohttpContext_BodyWriter(t *testing.T) {
@@ -226,12 +227,12 @@ func TestZerohttpContext_BodyWriter(t *testing.T) {
 	ctx := &zerohttpContext{w: rec}
 
 	writer := ctx.BodyWriter()
-	require.NotNil(t, writer)
+	zhtest.AssertNotNil(t, writer)
 
 	_, err := writer.Write([]byte("response body"))
-	require.NoError(t, err)
+	zhtest.AssertNoError(t, err)
 
-	assert.Equal(t, "response body", rec.Body.String())
+	zhtest.AssertEqual(t, "response body", rec.Body.String())
 }
 
 func TestZerohttpContext_TLS(t *testing.T) {
@@ -243,14 +244,14 @@ func TestZerohttpContext_TLS(t *testing.T) {
 		req.TLS = tlsState
 		ctx := &zerohttpContext{r: req}
 
-		assert.Equal(t, tlsState, ctx.TLS())
+		zhtest.AssertEqual(t, tlsState, ctx.TLS())
 	})
 
 	t.Run("without TLS", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		ctx := &zerohttpContext{r: req}
 
-		assert.Nil(t, ctx.TLS())
+		zhtest.AssertNil(t, ctx.TLS())
 	})
 }
 
@@ -262,9 +263,9 @@ func TestZerohttpContext_Version(t *testing.T) {
 	ctx := &zerohttpContext{r: req}
 
 	version := ctx.Version()
-	assert.Equal(t, "HTTP/2.0", version.Proto)
-	assert.Equal(t, 2, version.ProtoMajor)
-	assert.Equal(t, 0, version.ProtoMinor)
+	zhtest.AssertEqual(t, "HTTP/2.0", version.Proto)
+	zhtest.AssertEqual(t, 2, version.ProtoMajor)
+	zhtest.AssertEqual(t, 0, version.ProtoMinor)
 }
 
 func TestZerohttpContext_SetReadDeadline(t *testing.T) {
@@ -275,7 +276,7 @@ func TestZerohttpContext_SetReadDeadline(t *testing.T) {
 	deadline := time.Now().Add(5 * time.Second)
 	err := ctx.SetReadDeadline(deadline)
 	// ResponseRecorder doesn't support SetReadDeadline so this will error
-	assert.Error(t, err)
+	zhtest.AssertError(t, err)
 }
 
 func TestUnwrap(t *testing.T) {
@@ -285,8 +286,8 @@ func TestUnwrap(t *testing.T) {
 		ctx := &zerohttpContext{op: &huma.Operation{}, r: req, w: rec}
 
 		r, w := Unwrap(ctx)
-		assert.Equal(t, req, r)
-		assert.Equal(t, rec, w)
+		zhtest.AssertEqual(t, req, r)
+		zhtest.AssertEqual(t, rec, w)
 	})
 
 	t.Run("unwraps wrapped context", func(t *testing.T) {
@@ -296,12 +297,12 @@ func TestUnwrap(t *testing.T) {
 		wrapped := newWrappedContext(inner)
 
 		r, w := Unwrap(wrapped)
-		assert.Equal(t, req, r)
-		assert.Equal(t, rec, w)
+		zhtest.AssertEqual(t, req, r)
+		zhtest.AssertEqual(t, rec, w)
 	})
 
 	t.Run("panics for non-zerohttp context", func(t *testing.T) {
-		assert.Panics(t, func() {
+		zhtest.AssertPanic(t, func() {
 			Unwrap(&fakeContext{})
 		})
 	})
@@ -480,8 +481,8 @@ func TestZerohttpAdapter_Handle(t *testing.T) {
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)
 
-			assert.True(t, called)
-			assert.Equal(t, http.StatusOK, rec.Code)
+			zhtest.AssertTrue(t, called)
+			zhtest.AssertEqual(t, http.StatusOK, rec.Code)
 		})
 	}
 }
@@ -499,14 +500,14 @@ func TestZerohttpAdapter_ServeHTTP(t *testing.T) {
 	rec := httptest.NewRecorder()
 	adapter.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "Hello", rec.Body.String())
+	zhtest.AssertEqual(t, http.StatusOK, rec.Code)
+	zhtest.AssertEqual(t, "Hello", rec.Body.String())
 }
 
 func TestNewAdapter(t *testing.T) {
 	router := newMockRouter()
 	adapter := &zerohttpAdapter{router: router}
-	assert.NotNil(t, adapter)
+	zhtest.AssertNotNil(t, adapter)
 }
 
 func TestNew(t *testing.T) {
@@ -523,7 +524,7 @@ func TestNew(t *testing.T) {
 	}
 
 	api := huma.NewAPI(cfg, adapter)
-	assert.NotNil(t, api)
-	assert.Equal(t, "Test API", api.OpenAPI().Info.Title)
-	assert.Equal(t, "1.0.0", api.OpenAPI().Info.Version)
+	zhtest.AssertNotNil(t, api)
+	zhtest.AssertEqual(t, "Test API", api.OpenAPI().Info.Title)
+	zhtest.AssertEqual(t, "1.0.0", api.OpenAPI().Info.Version)
 }

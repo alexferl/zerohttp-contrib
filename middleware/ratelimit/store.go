@@ -20,6 +20,7 @@ type RedisClient interface {
 	ZRangeWithScores(ctx context.Context, key string, start, stop int64) *redis.ZSliceCmd
 	ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd
 	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
+	Close() error
 }
 
 // RedisStore implements ratelimit.Store using Redis for distributed
@@ -88,4 +89,10 @@ func (s *RedisStore) CheckAndRecord(ctx context.Context, key string, now time.Ti
 	resetTime := now.Add(s.window)
 
 	return true, remaining, resetTime
+}
+
+// Close closes the Redis connection.
+// Returns an error if the close operation fails.
+func (s *RedisStore) Close() error {
+	return s.client.Close()
 }

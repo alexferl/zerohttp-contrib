@@ -35,12 +35,19 @@ go get github.com/alexferl/zerohttp-contrib/<category>/<name>
 | `middleware/ratelimit`   | Redis store for distributed limits                                    | [examples/middleware/ratelimit](examples/middleware/ratelimit)     |
 | `middleware/tracer`      | OpenTelemetry tracer adapter                                          | [examples/middleware/tracer](examples/middleware/tracer)           |
 
+## Storage
+
+| Storage        | Description                                           |
+|----------------|-------------------------------------------------------|
+| `storage`      | Redis adapter implementing `zerohttp/storage.Storage` |
+
 ## Structure
 
 ```
 adapters/       # Interface adapters (logging, OpenAPI, etc.)
 extensions/     # Protocol extensions (HTTP/3, WebTransport, etc.)
 middleware/     # Pluggable middleware adapters
+storage/        # Storage adapters (Redis, etc.)
 ```
 
 Each subdirectory is an independent Go module with its own `go.mod`.

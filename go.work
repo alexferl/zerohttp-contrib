@@ -28,6 +28,7 @@ use (
 	./middleware/jwtauth
 	./middleware/ratelimit
 	./middleware/tracer
+	./storage
 )
 
 replace github.com/alexferl/zerohttp => ../zerohttp
