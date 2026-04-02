@@ -29,7 +29,7 @@ help:
 GOTESTSUM := go run gotest.tools/gotestsum@latest -f testname -- -race -count=1
 TESTFLAGS := -shuffle=on
 COVERFLAGS := -covermode=atomic
-GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
+GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
 
 # All module directories (subdirs that contain go.mod), excluding the repo root
 ALL_MODULE_DIRS := $(shell find . -mindepth 2 -name go.mod -print0 | xargs -0 -n1 dirname)

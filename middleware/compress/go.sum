@@ -1,7 +1,7 @@
-github.com/alexferl/zerohttp v0.72.0 h1:2qPokehVd/Sc7rLVoa2fM7Lc/NbiVRUnq3tSQAzJDzE=
-github.com/alexferl/zerohttp v0.72.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
-github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
-github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
+github.com/alexferl/zerohttp v0.79.0 h1:wxIlxFSh3JMOXYpn7UeOK3/oGmpDtc41XosGe5F2qcM=
+github.com/alexferl/zerohttp v0.79.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/andybalholm/brotli v1.2.1 h1:R+f5xP285VArJDRgowrfb9DqL18yVK0gKAW/F+eTWro=
+github.com/andybalholm/brotli v1.2.1/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/klauspost/compress v1.18.5 h1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=
 github.com/klauspost/compress v1.18.5/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/xyproto/randomstring v1.2.0 h1:y7PXAEBM3XlwJjPG2JQg4voxBYZ4+hPgRdGKCfU8wik=

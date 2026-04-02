@@ -3,9 +3,9 @@ module github.com/alexferl/zerohttp-contrib/examples/middleware/jwtauth
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.72.0
+	github.com/alexferl/zerohttp v0.79.0
 	github.com/alexferl/zerohttp-contrib/middleware/jwtauth v0.6.0
-	github.com/alexferl/zerohttp-contrib/storage v0.1.0
+	github.com/alexferl/zerohttp-contrib/storage v0.2.0
 	github.com/lestrrat-go/jwx/v3 v3.0.13
 	github.com/redis/go-redis/v9 v9.18.0
 )
@@ -16,10 +16,10 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
-	github.com/lestrrat-go/dsig v1.0.0 // indirect
+	github.com/lestrrat-go/dsig v1.1.0 // indirect
 	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
-	github.com/lestrrat-go/httprc/v3 v3.0.4 // indirect
+	github.com/lestrrat-go/httprc/v3 v3.0.5 // indirect
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
