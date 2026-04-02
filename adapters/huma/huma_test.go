@@ -391,38 +391,38 @@ func (m *mockRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func (m *mockRouter) GET(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) GET(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodGet, path, handler)
 }
 
-func (m *mockRouter) POST(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) POST(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodPost, path, handler)
 }
 
-func (m *mockRouter) PUT(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) PUT(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodPut, path, handler)
 }
 
-func (m *mockRouter) DELETE(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) DELETE(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodDelete, path, handler)
 }
 
-func (m *mockRouter) PATCH(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) PATCH(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodPatch, path, handler)
 }
 
-func (m *mockRouter) HEAD(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) HEAD(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodHead, path, handler)
 }
 
-func (m *mockRouter) OPTIONS(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) OPTIONS(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodOptions, path, handler)
 }
 
-func (m *mockRouter) CONNECT(path string, handler http.Handler, mw ...func(http.Handler) http.Handler) {
+func (m *mockRouter) CONNECT(path string, handler http.Handler, mw ...zh.MiddlewareFunc) {
 	m.addRoute(http.MethodConnect, path, handler)
 }
-func (m *mockRouter) Use(mw ...func(http.Handler) http.Handler)                                   {}
+func (m *mockRouter) Use(mw ...zh.MiddlewareFunc)                                                 {}
 func (m *mockRouter) Group(fn func(zh.Router))                                                    {}
 func (m *mockRouter) NotFound(h http.Handler)                                                     {}
 func (m *mockRouter) MethodNotAllowed(h http.Handler)                                             {}
