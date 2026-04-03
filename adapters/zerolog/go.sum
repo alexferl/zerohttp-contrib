@@ -1,5 +1,5 @@
-github.com/alexferl/zerohttp v0.79.0 h1:wxIlxFSh3JMOXYpn7UeOK3/oGmpDtc41XosGe5F2qcM=
-github.com/alexferl/zerohttp v0.79.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.80.0 h1:7zq4MJ1c3csBrhLtWkr6bCvNR9Fm1vOdvEXO3lNx9Vo=
+github.com/alexferl/zerohttp v0.80.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=

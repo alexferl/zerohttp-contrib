@@ -116,13 +116,30 @@ func TestNewRedisStore(t *testing.T) {
 	window := time.Minute
 	rate := 100
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, window, rate)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    window,
+		Rate:      rate,
+	})
 
 	zhtest.AssertNotNil(t, store)
 	zhtest.AssertEqual(t, client, store.client)
 	zhtest.AssertEqual(t, window, store.window)
 	zhtest.AssertEqual(t, rate, store.rate)
 	zhtest.AssertEqual(t, ratelimit.SlidingWindow, store.algorithm)
+	zhtest.AssertEqual(t, "ratelimit:", store.keyPrefix)
+}
+
+func TestNewRedisStore_Defaults(t *testing.T) {
+	client := &mockRedisClient{}
+
+	store := NewRedisStore(client)
+
+	zhtest.AssertNotNil(t, store)
+	zhtest.AssertEqual(t, client, store.client)
+	zhtest.AssertEqual(t, time.Minute, store.window)
+	zhtest.AssertEqual(t, 100, store.rate)
+	zhtest.AssertEqual(t, ratelimit.TokenBucket, store.algorithm)
 	zhtest.AssertEqual(t, "ratelimit:", store.keyPrefix)
 }
 
@@ -140,7 +157,11 @@ func TestRedisStore_CheckAndRecord_Allowed(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -171,7 +192,11 @@ func TestRedisStore_CheckAndRecord_Denied(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -190,7 +215,11 @@ func TestRedisStore_CheckAndRecord_RedisError(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	// Should fail open (allow request) on Redis error
@@ -216,7 +245,11 @@ func TestRedisStore_CheckAndRecord_ZAddError(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	// Should fail open on ZAdd error
@@ -243,7 +276,11 @@ func TestRedisStore_KeyPrefix(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	store.CheckAndRecord(context.Background(), "user-123", now)
@@ -275,7 +312,11 @@ func TestRedisStore_WindowCleanup(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	store.CheckAndRecord(context.Background(), "test-key", now)
@@ -307,7 +348,11 @@ func TestRedisStore_Expire(t *testing.T) {
 	}
 
 	window := time.Minute
-	store := NewRedisStore(client, ratelimit.SlidingWindow, window, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    window,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	store.CheckAndRecord(context.Background(), "test-key", now)
@@ -318,7 +363,11 @@ func TestRedisStore_Expire(t *testing.T) {
 
 func TestRedisStore_ImplementsInterface(t *testing.T) {
 	client := &mockRedisClient{}
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 
 	// Verify RedisStore implements ratelimit.Store
 	var _ ratelimit.Store = store
@@ -326,7 +375,11 @@ func TestRedisStore_ImplementsInterface(t *testing.T) {
 
 func TestRedisStore_Close(t *testing.T) {
 	client := &mockRedisClient{}
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 100)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      100,
+	})
 
 	err := store.Close()
 	zhtest.AssertNoError(t, err)
@@ -346,7 +399,11 @@ func BenchmarkRedisStore_CheckAndRecord(b *testing.B) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.SlidingWindow, time.Minute, 1000)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.SlidingWindow,
+		Window:    time.Minute,
+		Rate:      1000,
+	})
 	ctx := context.Background()
 	now := time.Now()
 
@@ -367,7 +424,11 @@ func TestRedisStore_TokenBucket_Allowed(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.TokenBucket, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.TokenBucket,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -386,7 +447,11 @@ func TestRedisStore_TokenBucket_Denied(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.TokenBucket, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.TokenBucket,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -405,7 +470,11 @@ func TestRedisStore_TokenBucket_RedisError(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.TokenBucket, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.TokenBucket,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	// Should fail open on Redis error
@@ -424,7 +493,11 @@ func TestRedisStore_TokenBucket_InvalidResult(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.TokenBucket, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.TokenBucket,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	// Should fail open on invalid result
@@ -445,7 +518,11 @@ func TestRedisStore_TokenBucket_KeyPrefix(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.TokenBucket, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.TokenBucket,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	store.CheckAndRecord(context.Background(), "user-123", time.Now())
 
 	expectedKey := "ratelimit:tb:user-123"
@@ -463,7 +540,11 @@ func TestRedisStore_FixedWindow_Allowed(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -482,7 +563,11 @@ func TestRedisStore_FixedWindow_Denied(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	allowed, remaining, resetTime := store.CheckAndRecord(context.Background(), "test-key", now)
@@ -501,7 +586,11 @@ func TestRedisStore_FixedWindow_RedisError(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	now := time.Now()
 
 	// Should fail open on Redis error
@@ -527,7 +616,11 @@ func TestRedisStore_FixedWindow_ExpireNXCalled(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	store.CheckAndRecord(context.Background(), "test-key", time.Now())
 
 	zhtest.AssertTrue(t, expireNXCalled)
@@ -549,7 +642,11 @@ func TestRedisStore_FixedWindow_ExpireNXNotCalledOnExisting(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	store.CheckAndRecord(context.Background(), "test-key", time.Now())
 
 	zhtest.AssertFalse(t, expireNXCalled)
@@ -566,7 +663,11 @@ func TestRedisStore_FixedWindow_KeyPrefix(t *testing.T) {
 		},
 	}
 
-	store := NewRedisStore(client, ratelimit.FixedWindow, time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Algorithm: ratelimit.FixedWindow,
+		Window:    time.Minute,
+		Rate:      10,
+	})
 	store.CheckAndRecord(context.Background(), "user-123", time.Now())
 
 	expectedKey := "ratelimit:fw:user-123"
@@ -586,7 +687,10 @@ func TestRedisStore_DefaultAlgorithm(t *testing.T) {
 	}
 
 	// Use empty algorithm (should default to token bucket)
-	store := NewRedisStore(client, "", time.Minute, 10)
+	store := NewRedisStore(client, RedisStoreConfig{
+		Window: time.Minute,
+		Rate:   10,
+	})
 	now := time.Now()
 
 	allowed, remaining, _ := store.CheckAndRecord(context.Background(), "test-key", now)

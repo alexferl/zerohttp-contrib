@@ -23,6 +23,18 @@ type RedisClient interface {
 	Close() error
 }
 
+// RedisStoreConfig configures the RedisStore.
+type RedisStoreConfig struct {
+	// KeyPrefix is the prefix for cache keys.
+	// Default: ""
+	KeyPrefix string
+}
+
+// DefaultRedisStoreConfig is the default configuration for RedisStore.
+var DefaultRedisStoreConfig = RedisStoreConfig{
+	KeyPrefix: "",
+}
+
 // RedisStore implements cache.Store using Redis as the backend.
 // This allows caching to work across multiple server instances.
 type RedisStore struct {
@@ -44,11 +56,22 @@ type cacheRecord struct {
 // This allows caching to work across multiple server instances.
 // The client can be *redis.Client, *redis.ClusterClient, redis.UniversalClient, or any type
 // implementing the RedisClient interface.
-// The optional prefix is prepended to all cache keys.
-func NewRedisStore(client RedisClient, prefix string) *RedisStore {
+//
+// Configuration is applied via variadic RedisStoreConfig (allowing inline construction).
+// If no config is provided, defaults are used.
+// If multiple configs are provided, the first one is used.
+func NewRedisStore(client RedisClient, cfg ...RedisStoreConfig) *RedisStore {
+	c := DefaultRedisStoreConfig
+	if len(cfg) > 0 {
+		userCfg := cfg[0]
+		if userCfg.KeyPrefix != "" {
+			c.KeyPrefix = userCfg.KeyPrefix
+		}
+	}
+
 	return &RedisStore{
 		client: client,
-		prefix: prefix,
+		prefix: c.KeyPrefix,
 	}
 }
 

@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/examples/middleware/cache
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.79.0
+	github.com/alexferl/zerohttp v0.80.0
 	github.com/alexferl/zerohttp-contrib/middleware/cache v0.3.0
 	github.com/redis/go-redis/v9 v9.18.0
 )

@@ -63,6 +63,33 @@ else
 end
 `
 
+// RedisStoreConfig configures the RedisStore.
+type RedisStoreConfig struct {
+	// Algorithm is the rate limiting algorithm to use.
+	// Default: TokenBucket
+	Algorithm zratelimit.Algorithm
+
+	// Window is the time window for rate limiting.
+	// Default: 1 minute
+	Window time.Duration
+
+	// Rate is the maximum number of requests allowed in the window.
+	// Default: 100
+	Rate int
+
+	// KeyPrefix is the prefix for Redis keys.
+	// Default: "ratelimit:"
+	KeyPrefix string
+}
+
+// DefaultRedisStoreConfig is the default configuration for RedisStore.
+var DefaultRedisStoreConfig = RedisStoreConfig{
+	Algorithm: zratelimit.TokenBucket,
+	Window:    time.Minute,
+	Rate:      100,
+	KeyPrefix: "ratelimit:",
+}
+
 // RedisStore implements ratelimit.Store using Redis for distributed
 // rate limiting across multiple server instances.
 type RedisStore struct {
@@ -77,13 +104,35 @@ type RedisStore struct {
 // This allows rate limiting to work across multiple server instances.
 // The client can be *redis.Client, *redis.ClusterClient, redis.UniversalClient, or any type
 // implementing the RedisClient interface.
-func NewRedisStore(client RedisClient, algorithm zratelimit.Algorithm, window time.Duration, rate int) *RedisStore {
+//
+// Configuration is applied via variadic RedisStoreConfig (allowing inline construction).
+// If no config is provided, defaults are used.
+// If multiple configs are provided, the first one is used.
+// Fields not explicitly set in the config will use defaults.
+func NewRedisStore(client RedisClient, cfg ...RedisStoreConfig) *RedisStore {
+	c := DefaultRedisStoreConfig
+	if len(cfg) > 0 {
+		userCfg := cfg[0]
+		if userCfg.Algorithm != "" {
+			c.Algorithm = userCfg.Algorithm
+		}
+		if userCfg.Window != 0 {
+			c.Window = userCfg.Window
+		}
+		if userCfg.Rate != 0 {
+			c.Rate = userCfg.Rate
+		}
+		if userCfg.KeyPrefix != "" {
+			c.KeyPrefix = userCfg.KeyPrefix
+		}
+	}
+
 	return &RedisStore{
 		client:    client,
-		window:    window,
-		rate:      rate,
-		algorithm: algorithm,
-		keyPrefix: "ratelimit:",
+		window:    c.Window,
+		rate:      c.Rate,
+		algorithm: c.Algorithm,
+		keyPrefix: c.KeyPrefix,
 	}
 }
 

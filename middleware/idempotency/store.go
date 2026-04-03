@@ -24,6 +24,23 @@ type RedisClient interface {
 	Close() error
 }
 
+// RedisStoreConfig configures the RedisStore.
+type RedisStoreConfig struct {
+	// KeyPrefix is the prefix for idempotency keys.
+	// Default: ""
+	KeyPrefix string
+
+	// LockTTL is the TTL for distributed locks.
+	// Default: 30s
+	LockTTL time.Duration
+}
+
+// DefaultRedisStoreConfig is the default configuration for RedisStore.
+var DefaultRedisStoreConfig = RedisStoreConfig{
+	KeyPrefix: "",
+	LockTTL:   30 * time.Second,
+}
+
 // RedisStore implements idempotency.Store using Redis for distributed
 // idempotency across multiple server instances.
 type RedisStore struct {
@@ -44,22 +61,26 @@ type redisRecord struct {
 // This allows idempotency to work across multiple server instances.
 // The client can be *redis.Client, *redis.ClusterClient, redis.UniversalClient, or any type
 // implementing the RedisClient interface.
-// The optional prefix is prepended to all keys.
-func NewRedisStore(client RedisClient, prefix string) *RedisStore {
-	return &RedisStore{
-		client:    client,
-		keyPrefix: prefix,
-		lockTTL:   30 * time.Second, // Default lock TTL
+//
+// Configuration is applied via variadic RedisStoreConfig (allowing inline construction).
+// If no config is provided, defaults are used.
+// If multiple configs are provided, the first one is used.
+func NewRedisStore(client RedisClient, cfg ...RedisStoreConfig) *RedisStore {
+	c := DefaultRedisStoreConfig
+	if len(cfg) > 0 {
+		userCfg := cfg[0]
+		if userCfg.KeyPrefix != "" {
+			c.KeyPrefix = userCfg.KeyPrefix
+		}
+		if userCfg.LockTTL != 0 {
+			c.LockTTL = userCfg.LockTTL
+		}
 	}
-}
 
-// NewRedisStoreWithLockTTL creates a new Redis-backed idempotency store with custom lock TTL.
-// The lockTTL determines how long a lock is held before expiring (to prevent deadlocks).
-func NewRedisStoreWithLockTTL(client RedisClient, prefix string, lockTTL time.Duration) *RedisStore {
 	return &RedisStore{
 		client:    client,
-		keyPrefix: prefix,
-		lockTTL:   lockTTL,
+		keyPrefix: c.KeyPrefix,
+		lockTTL:   c.LockTTL,
 	}
 }
 

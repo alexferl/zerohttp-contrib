@@ -39,9 +39,16 @@ func (m *mockRedisClient) Close() error {
 }
 
 func TestNewRedisStore(t *testing.T) {
-	store := NewRedisStore(nil, "test:prefix")
+	store := NewRedisStore(nil, RedisStoreConfig{KeyPrefix: "test:prefix"})
 	zhtest.AssertNotNil(t, store)
 	zhtest.AssertEqual(t, "test:prefix", store.prefix)
+	zhtest.AssertNil(t, store.client)
+}
+
+func TestNewRedisStore_Defaults(t *testing.T) {
+	store := NewRedisStore(nil)
+	zhtest.AssertNotNil(t, store)
+	zhtest.AssertEqual(t, "", store.prefix)
 	zhtest.AssertNil(t, store.client)
 }
 
@@ -74,7 +81,7 @@ func TestRedisStore_makeKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewRedisStore(nil, tt.prefix)
+			store := NewRedisStore(nil, RedisStoreConfig{KeyPrefix: tt.prefix})
 			got := store.makeKey(tt.key)
 			zhtest.AssertEqual(t, tt.want, got)
 		})
@@ -91,7 +98,7 @@ func TestRedisStore_Get(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record, found, err := store.Get(ctx, "missing-key")
 
 		zhtest.AssertNoError(t, err)
@@ -109,7 +116,7 @@ func TestRedisStore_Get(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record, found, err := store.Get(ctx, "existing-key")
 
 		zhtest.AssertNoError(t, err)
@@ -125,7 +132,7 @@ func TestRedisStore_Get(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record, found, err := store.Get(ctx, "error-key")
 
 		zhtest.AssertError(t, err)
@@ -141,7 +148,7 @@ func TestRedisStore_Get(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record, found, err := store.Get(ctx, "invalid-key")
 
 		zhtest.AssertError(t, err)
@@ -168,7 +175,7 @@ func TestRedisStore_Set(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record := cache.Record{
 			StatusCode: http.StatusOK,
 			Headers:    map[string][]string{"Content-Type": {"application/json"}},
@@ -193,7 +200,7 @@ func TestRedisStore_Set(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		record := cache.Record{
 			StatusCode: http.StatusOK,
 			Body:       []byte(`test`),
@@ -219,7 +226,7 @@ func TestRedisStore_Delete(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		err := store.Delete(ctx, "test-key")
 
 		zhtest.AssertNoError(t, err)
@@ -233,7 +240,7 @@ func TestRedisStore_Delete(t *testing.T) {
 			},
 		}
 
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 		err := store.Delete(ctx, "error-key")
 
 		zhtest.AssertError(t, err)
@@ -244,7 +251,7 @@ func TestRedisStore_Delete(t *testing.T) {
 func TestRedisStore_Close(t *testing.T) {
 	t.Run("successful close", func(t *testing.T) {
 		mockClient := &mockRedisClient{}
-		store := NewRedisStore(mockClient, "test")
+		store := NewRedisStore(mockClient, RedisStoreConfig{KeyPrefix: "test"})
 
 		err := store.Close()
 

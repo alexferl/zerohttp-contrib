@@ -17,7 +17,9 @@ func main() {
 	})
 
 	// Create Redis-backed idempotency store
-	store := idempotency.NewRedisStore(client, "idempotency")
+	store := idempotency.NewRedisStore(client, idempotency.RedisStoreConfig{
+		KeyPrefix: "idempotency",
+	})
 
 	app := zh.New()
 
@@ -35,11 +37,5 @@ func main() {
 		})
 	}))
 
-	log.Println("Server starting on :8080")
-	log.Println("Test with:")
-	log.Println(`curl -X POST http://localhost:8080/payments \`)
-	log.Println(`  -H "Idempotency-Key: unique-key-123" \`)
-	log.Println(`  -H "Content-Type: application/json" \`)
-	log.Println(`  -d '{"amount": 100}'`)
 	log.Fatal(app.Start())
 }

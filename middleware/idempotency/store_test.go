@@ -21,16 +21,25 @@ func setupTestRedis(t *testing.T) (*miniredis.Miniredis, RedisClient) {
 
 func TestNewRedisStore(t *testing.T) {
 	_, client := setupTestRedis(t)
-	store := NewRedisStore(client, "test")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "test"})
 
 	zhtest.AssertNotNil(t, store)
 	zhtest.AssertEqual(t, "test", store.keyPrefix)
 	zhtest.AssertEqual(t, 30*time.Second, store.lockTTL)
 }
 
-func TestNewRedisStoreWithLockTTL(t *testing.T) {
+func TestNewRedisStore_Defaults(t *testing.T) {
 	_, client := setupTestRedis(t)
-	store := NewRedisStoreWithLockTTL(client, "test", 10*time.Second)
+	store := NewRedisStore(client)
+
+	zhtest.AssertNotNil(t, store)
+	zhtest.AssertEqual(t, "", store.keyPrefix)
+	zhtest.AssertEqual(t, 30*time.Second, store.lockTTL)
+}
+
+func TestNewRedisStore_WithLockTTL(t *testing.T) {
+	_, client := setupTestRedis(t)
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "test", LockTTL: 10 * time.Second})
 
 	zhtest.AssertNotNil(t, store)
 	zhtest.AssertEqual(t, "test", store.keyPrefix)
@@ -41,7 +50,7 @@ func TestRedisStore_SetAndGet(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	record := idempotency.Record{
@@ -68,7 +77,7 @@ func TestRedisStore_Get_NotFound(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	retrieved, found, err := store.Get(ctx, "nonexistent")
@@ -81,7 +90,7 @@ func TestRedisStore_Set_WithTTL(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	record := idempotency.Record{
@@ -111,7 +120,7 @@ func TestRedisStore_Lock(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	// First lock should succeed
@@ -134,7 +143,7 @@ func TestRedisStore_Unlock(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	// Acquire lock
@@ -157,7 +166,7 @@ func TestRedisStore_LockTTL(t *testing.T) {
 	defer mr.Close()
 
 	// Create store with short lock TTL
-	store := NewRedisStoreWithLockTTL(client, "idemp", time.Minute)
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp", LockTTL: time.Minute})
 	ctx := context.Background()
 
 	// Acquire lock
@@ -183,7 +192,7 @@ func TestRedisStore_KeyPrefix(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "myprefix")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "myprefix"})
 	ctx := context.Background()
 
 	record := idempotency.Record{
@@ -203,7 +212,7 @@ func TestRedisStore_NoPrefix(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "")
+	store := NewRedisStore(client)
 	ctx := context.Background()
 
 	record := idempotency.Record{
@@ -223,7 +232,7 @@ func TestRedisStore_Get_InvalidData(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	// Set invalid JSON directly in Redis
@@ -240,7 +249,7 @@ func TestRedisStore_ConcurrentLocks(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 	ctx := context.Background()
 
 	// First goroutine acquires lock
@@ -268,7 +277,7 @@ func TestRedisStore_Close(t *testing.T) {
 	mr, client := setupTestRedis(t)
 	defer mr.Close()
 
-	store := NewRedisStore(client, "idemp")
+	store := NewRedisStore(client, RedisStoreConfig{KeyPrefix: "idemp"})
 
 	err := store.Close()
 	zhtest.AssertNoError(t, err)
