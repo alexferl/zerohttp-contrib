@@ -32,15 +32,34 @@ type StorageAdapter struct {
 	prefix  string
 }
 
+// StorageAdapterConfig configures the StorageAdapter.
+type StorageAdapterConfig struct {
+	// KeyPrefix is the prefix for keys.
+	// Default: "jwt"
+	KeyPrefix string
+}
+
+// DefaultStorageAdapterConfig is the default configuration for StorageAdapter.
+var DefaultStorageAdapterConfig = StorageAdapterConfig{
+	KeyPrefix: "jwt",
+}
+
 // NewStorageAdapter creates a StorageAdapter from a storage.Storage backend.
-// The prefix is used to namespace keys (default: "jwt").
-func NewStorageAdapter(s storage.Storage, prefix string) *StorageAdapter {
-	if prefix == "" {
-		prefix = "jwt"
+//
+// Configuration is applied via variadic StorageAdapterConfig (allowing inline construction).
+// If no config is provided, defaults are used.
+// If multiple configs are provided, the first one is used.
+func NewStorageAdapter(s storage.Storage, cfg ...StorageAdapterConfig) *StorageAdapter {
+	c := DefaultStorageAdapterConfig
+	if len(cfg) > 0 {
+		userCfg := cfg[0]
+		if userCfg.KeyPrefix != "" {
+			c.KeyPrefix = userCfg.KeyPrefix
+		}
 	}
 	return &StorageAdapter{
 		storage: s,
-		prefix:  prefix,
+		prefix:  c.KeyPrefix,
 	}
 }
 

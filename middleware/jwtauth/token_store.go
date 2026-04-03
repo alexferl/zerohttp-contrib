@@ -106,7 +106,7 @@ func NewTokenStore(cfg Config) *TokenStore {
 
 	return &TokenStore{
 		config:  cfg,
-		adapter: NewStorageAdapter(cfg.Storage, ""),
+		adapter: NewStorageAdapter(cfg.Storage),
 	}
 }
 

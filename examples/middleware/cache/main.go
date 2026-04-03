@@ -9,6 +9,7 @@ import (
 
 	zh "github.com/alexferl/zerohttp"
 	"github.com/alexferl/zerohttp-contrib/middleware/cache"
+	"github.com/alexferl/zerohttp/config"
 	"github.com/alexferl/zerohttp/httpx"
 	zcache "github.com/alexferl/zerohttp/middleware/cache"
 	"github.com/redis/go-redis/v9"
@@ -29,7 +30,9 @@ func main() {
 	}
 
 	// Create Redis-backed cache store
-	cacheStore := cache.NewRedisStore(client, "zerohttp:cache")
+	cacheStore := cache.NewRedisStore(client, cache.RedisStoreConfig{
+		KeyPrefix: "zerohttp:cache",
+	})
 
 	app := zh.New()
 
@@ -46,8 +49,8 @@ func main() {
 		zcache.New(zcache.Config{
 			CacheControl: "public, max-age=30",
 			DefaultTTL:   30 * time.Second,
-			ETag:         true,
-			LastModified: true,
+			ETag:         config.Bool(true),
+			LastModified: config.Bool(true),
 			Store:        cacheStore,
 		}),
 	)
@@ -67,7 +70,7 @@ func main() {
 		zcache.New(zcache.Config{
 			CacheControl: "private, max-age=60",
 			DefaultTTL:   time.Minute,
-			ETag:         true,
+			ETag:         config.Bool(true),
 			Vary:         []string{httpx.HeaderAccept, httpx.HeaderAcceptEncoding},
 			Store:        cacheStore,
 		}),

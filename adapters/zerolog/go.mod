@@ -3,7 +3,7 @@ module github.com/alexferl/zerohttp-contrib/adapters/zerolog
 go 1.25.0
 
 require (
-	github.com/alexferl/zerohttp v0.79.0
+	github.com/alexferl/zerohttp v0.80.0
 	github.com/rs/zerolog v1.35.0
 )
 

@@ -1,5 +1,5 @@
-github.com/alexferl/zerohttp v0.79.0 h1:wxIlxFSh3JMOXYpn7UeOK3/oGmpDtc41XosGe5F2qcM=
-github.com/alexferl/zerohttp v0.79.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.80.0 h1:7zq4MJ1c3csBrhLtWkr6bCvNR9Fm1vOdvEXO3lNx9Vo=
+github.com/alexferl/zerohttp v0.80.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

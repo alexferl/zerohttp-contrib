@@ -40,15 +40,15 @@ func (m *memoryStorage) Close() error {
 func TestNewStorageAdapter(t *testing.T) {
 	t.Run("with custom prefix", func(t *testing.T) {
 		store := newMemoryStorage()
-		adapter := NewStorageAdapter(store, "custom:")
+		adapter := NewStorageAdapter(store, StorageAdapterConfig{KeyPrefix: "custom:"})
 
 		zhtest.AssertNotNil(t, adapter)
 		zhtest.AssertEqual(t, "custom:", adapter.prefix)
 	})
 
-	t.Run("with empty prefix uses default", func(t *testing.T) {
+	t.Run("with defaults", func(t *testing.T) {
 		store := newMemoryStorage()
-		adapter := NewStorageAdapter(store, "")
+		adapter := NewStorageAdapter(store)
 
 		zhtest.AssertEqual(t, "jwt", adapter.prefix)
 	})
@@ -79,7 +79,7 @@ func TestStorageAdapter_tokenKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			adapter := NewStorageAdapter(store, tt.prefix)
+			adapter := NewStorageAdapter(store, StorageAdapterConfig{KeyPrefix: tt.prefix})
 			result := adapter.tokenKey(tt.key)
 			zhtest.AssertEqual(t, tt.expected, result)
 		})
@@ -111,7 +111,7 @@ func TestStorageAdapter_sessionKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			adapter := NewStorageAdapter(store, tt.prefix)
+			adapter := NewStorageAdapter(store, StorageAdapterConfig{KeyPrefix: tt.prefix})
 			result := adapter.sessionKey(tt.sid)
 			zhtest.AssertEqual(t, tt.expected, result)
 		})
@@ -120,7 +120,7 @@ func TestStorageAdapter_sessionKey(t *testing.T) {
 
 func TestStorageAdapter(t *testing.T) {
 	store := newMemoryStorage()
-	adapter := NewStorageAdapter(store, "test:")
+	adapter := NewStorageAdapter(store, StorageAdapterConfig{KeyPrefix: "test:"})
 	ctx := context.Background()
 
 	t.Run("revoke and check token", func(t *testing.T) {
@@ -160,7 +160,7 @@ func TestStorageAdapter(t *testing.T) {
 func TestStorageAdapter_IsTokenRevoked_Error(t *testing.T) {
 	// Test with a storage that returns an error
 	errStorage := &errorStorage{err: context.Canceled}
-	adapter := NewStorageAdapter(errStorage, "test:")
+	adapter := NewStorageAdapter(errStorage, StorageAdapterConfig{KeyPrefix: "test:"})
 	ctx := context.Background()
 
 	_, err := adapter.IsTokenRevoked(ctx, "token-123")
@@ -170,7 +170,7 @@ func TestStorageAdapter_IsTokenRevoked_Error(t *testing.T) {
 func TestStorageAdapter_IsSessionRevoked_Error(t *testing.T) {
 	// Test with a storage that returns an error
 	errStorage := &errorStorage{err: context.Canceled}
-	adapter := NewStorageAdapter(errStorage, "test:")
+	adapter := NewStorageAdapter(errStorage, StorageAdapterConfig{KeyPrefix: "test:"})
 	ctx := context.Background()
 
 	_, err := adapter.IsSessionRevoked(ctx, "session-abc")
