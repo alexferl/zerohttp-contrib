@@ -431,24 +431,28 @@ func tokenToMap(token jwt.Token) map[string]any {
 		m["jti"] = jti
 	}
 
-	// Extract common custom claims using Get method
-	// This handles private claims that are not part of the standard JWT claims
-	var sid string
-	if err := token.Get("sid", &sid); err == nil {
-		m["sid"] = sid
-	}
-
-	var scope string
-	if err := token.Get("scope", &scope); err == nil {
-		m["scope"] = scope
-	}
-
-	var typ string
-	if err := token.Get("type", &typ); err == nil {
-		m["type"] = typ
+	// Extract all private claims using Keys() and Get()
+	for _, key := range token.Keys() {
+		if isStandardClaim(key) {
+			continue
+		}
+		var v any
+		if err := token.Get(key, &v); err == nil {
+			m[key] = v
+		}
 	}
 
 	return m
+}
+
+// isStandardClaim returns true if the claim key is a standard JWT claim
+// that was already extracted above.
+func isStandardClaim(key string) bool {
+	switch key {
+	case "sub", "iss", "aud", "exp", "iat", "nbf", "jti":
+		return true
+	}
+	return false
 }
 
 // normalizeClaims converts various claim types to map[string]any.
