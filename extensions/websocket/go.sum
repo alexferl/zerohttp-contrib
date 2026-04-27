@@ -1,4 +1,4 @@
-github.com/alexferl/zerohttp v0.80.0 h1:7zq4MJ1c3csBrhLtWkr6bCvNR9Fm1vOdvEXO3lNx9Vo=
-github.com/alexferl/zerohttp v0.80.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
+github.com/alexferl/zerohttp v0.86.0 h1:F0RVPswC2OFo9dZjhmGG7JTWPgi4YF2k+PCo0gk65wQ=
+github.com/alexferl/zerohttp v0.86.0/go.mod h1:xw9kPtRht77tLCKjFVcwnu35LIWncvJLOePn5atj3t8=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
